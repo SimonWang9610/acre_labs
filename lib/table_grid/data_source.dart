@@ -79,6 +79,8 @@ final class TableDataSource with TableCoordinatorMixin {
     List<int> rows, {
     bool showPlaceholder = false,
   }) {
+    if (rows.isEmpty) return;
+
     bool shouldNotify = rows.isNotEmpty;
 
     final indexMapped = Map<int, dynamic>.from(_rows.asMap());
