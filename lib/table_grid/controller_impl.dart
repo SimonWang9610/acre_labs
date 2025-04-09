@@ -2,6 +2,7 @@ import 'package:acre_labs/table_grid/action_manager.dart';
 import 'package:acre_labs/table_grid/cell_detail.dart';
 import 'package:acre_labs/table_grid/data_source.dart';
 import 'package:acre_labs/table_grid/models.dart';
+import 'package:acre_labs/table_grid/span.dart';
 import 'package:acre_labs/table_grid/table_column_manager.dart';
 import 'package:acre_labs/table_grid/table_span_manager.dart';
 import 'package:flutter/widgets.dart';
@@ -11,24 +12,23 @@ import 'controller.dart';
 
 final class TableControllerImpl extends TableController
     with
-        ChangeNotifier,
+        // ChangeNotifier,
         TableCoordinator,
         TableActionImplMixin,
         TableColumnImplMixin,
         TableDataSourceImplMixin {
   TableControllerImpl({
     required List<ColumnId> columns,
-    required DefaultTableSpanManager spanManager,
+    required TableExtentManager extentManager,
     List initialRows = const [],
     bool alwaysShowHeader = true,
-    bool? addPlaceholderRow,
     List<TableSelectionStrategy> selectionStrategies = const [
       TableSelectionStrategy.row
     ],
     List<TableHoveringStrategy> hoveringStrategies = const [
       TableHoveringStrategy.row
     ],
-  }) : _spanManager = spanManager {
+  }) : _extentManager = extentManager {
     _actionManager = ActionManager(
       hoveringStrategies: hoveringStrategies,
       selectionStrategies: selectionStrategies,
@@ -37,14 +37,13 @@ final class TableControllerImpl extends TableController
     _dataSource = TableDataSource(
       rows: initialRows,
       alwaysShowHeader: alwaysShowHeader,
-      addPlaceholderRow: addPlaceholderRow,
     )..bindCoordinator(this);
 
     _columnManager = TableColumnManager()
       ..bindCoordinator(this)
       ..setColumns(columns);
 
-    _spanManager.bindCoordinator(this);
+    _extentManager.bindCoordinator(this);
   }
 
   @override
@@ -56,13 +55,14 @@ final class TableControllerImpl extends TableController
   @override
   late final TableColumnManager _columnManager;
 
-  DefaultTableSpanManager _spanManager;
+  TableExtentManager _extentManager;
 
-  set spanManager(DefaultTableSpanManager value) {
-    if (_spanManager == value) return;
-    _spanManager.dispose();
-    _spanManager = value;
-    _spanManager.bindCoordinator(this);
+  set extentManager(TableExtentManager value) {
+    if (_extentManager == value) return;
+    _extentManager.dispose();
+    _extentManager = value;
+    _extentManager.bindCoordinator(this);
+    notifyRebuild();
   }
 
   @override
@@ -95,11 +95,8 @@ final class TableControllerImpl extends TableController
   }
 
   @override
-  Listenable get listenable => this;
-
-  @override
   void dispose() {
-    _spanManager.dispose();
+    _extentManager.dispose();
     _dataSource.dispose();
     _columnManager.dispose();
     _actionManager.dispose();
@@ -109,13 +106,6 @@ final class TableControllerImpl extends TableController
   @override
   bool isColumnHeader(int vicinityRow) {
     return _dataSource.alwaysShowHeader ? vicinityRow == 0 : false;
-  }
-
-  @override
-  bool isPlaceholderRow(TableVicinity vicinity) {
-    return !isColumnHeader(vicinity.row) &&
-        rowCount - 1 == vicinity.row &&
-        hasPlaceholderRow;
   }
 
   @override
@@ -173,19 +163,23 @@ final class TableControllerImpl extends TableController
   }
 
   @override
-  TableSpan buildColumnSpan(int index) {
+  TableSpan buildColumnSpan(int index, TableGridBorder border) {
     final columnId = orderedColumns[index];
-    final cellSpan = _spanManager.getColumnSpan(columnId);
-    return cellSpan.build(
-      cursor: SystemMouseCursors.grabbing,
+    final extent = _extentManager.getColumnExtent(columnId);
+    return border.build(
+      axis: Axis.vertical,
+      extent: extent,
+      last: index == columnCount - 1,
     );
   }
 
   @override
-  TableSpan buildRowSpan(int index) {
-    final cellSpan = _spanManager.getRowSpan(index);
-    return cellSpan.build(
-      cursor: SystemMouseCursors.grabbing,
+  TableSpan buildRowSpan(int index, TableGridBorder border) {
+    final extent = _extentManager.getRowExtent(index);
+    return border.build(
+      axis: Axis.horizontal,
+      extent: extent,
+      last: index == rowCount - 1,
     );
   }
 }
@@ -202,7 +196,6 @@ base mixin TableDataSourceImplMixin on TableController {
     _dataSource.add(
       rows,
       skipDuplicates: skipDuplicates,
-      removePlaceholder: removePlaceholder,
     );
   }
 
@@ -212,12 +205,12 @@ base mixin TableDataSourceImplMixin on TableController {
     bool showPlaceholder = false,
   }) {
     _dataSource.remove(
-        rows
-            .map(
-              (r) => toVicinityRow(r),
-            )
-            .toList(),
-        showPlaceholder: showPlaceholder);
+      rows
+          .map(
+            (r) => toVicinityRow(r),
+          )
+          .toList(),
+    );
   }
 
   @override
@@ -248,11 +241,6 @@ base mixin TableDataSourceImplMixin on TableController {
   }
 
   @override
-  void togglePlaceholder(bool show) {
-    _dataSource.addPlaceholderRow = show;
-  }
-
-  @override
   int get rowCount => _dataSource.rowCount;
 
   @override
@@ -260,9 +248,6 @@ base mixin TableDataSourceImplMixin on TableController {
 
   @override
   int get dataCount => _dataSource.dataCount;
-
-  @override
-  bool get hasPlaceholderRow => _dataSource.addPlaceholderRow;
 }
 
 base mixin TableColumnImplMixin on TableController {

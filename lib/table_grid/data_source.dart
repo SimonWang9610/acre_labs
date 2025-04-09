@@ -4,21 +4,15 @@ final class TableDataSource with TableCoordinatorMixin {
   TableDataSource({
     List rows = const [],
     bool alwaysShowHeader = true,
-    bool? addPlaceholderRow,
   }) : _alwaysShowHeader = alwaysShowHeader {
     add(rows);
-
-    if (addPlaceholderRow != null) {
-      _addPlaceholderRow = addPlaceholderRow;
-    }
   }
 
   final _rows = [];
 
   int get dataCount => _rows.length;
 
-  int get rowCount =>
-      dataCount + (_alwaysShowHeader ? 1 : 0) + (_addPlaceholderRow ? 1 : 0);
+  int get rowCount => dataCount + (_alwaysShowHeader ? 1 : 0);
 
   bool _alwaysShowHeader;
   bool get alwaysShowHeader => _alwaysShowHeader;
@@ -26,15 +20,6 @@ final class TableDataSource with TableCoordinatorMixin {
   set alwaysShowHeader(bool value) {
     if (_alwaysShowHeader == value) return;
     _alwaysShowHeader = value;
-    coordinator.notifyRebuild();
-  }
-
-  bool _addPlaceholderRow = false;
-  bool get addPlaceholderRow => _addPlaceholderRow;
-
-  set addPlaceholderRow(bool value) {
-    if (_addPlaceholderRow == value) return;
-    _addPlaceholderRow = value;
     coordinator.notifyRebuild();
   }
 
@@ -51,7 +36,6 @@ final class TableDataSource with TableCoordinatorMixin {
   void add(
     List rows, {
     bool skipDuplicates = false,
-    bool removePlaceholder = true,
   }) {
     bool shouldNotify = rows.isNotEmpty;
 
@@ -65,20 +49,12 @@ final class TableDataSource with TableCoordinatorMixin {
       }
     }
 
-    if (_addPlaceholderRow && removePlaceholder) {
-      _addPlaceholderRow = false;
-      shouldNotify |= true;
-    }
-
     if (shouldNotify) {
       coordinator.notifyRebuild();
     }
   }
 
-  void remove(
-    List<int> rows, {
-    bool showPlaceholder = false,
-  }) {
+  void remove(List<int> rows) {
     if (rows.isEmpty) return;
 
     bool shouldNotify = rows.isNotEmpty;
@@ -112,11 +88,6 @@ final class TableDataSource with TableCoordinatorMixin {
 
     _rows.clear();
     _rows.addAll(newValues);
-
-    if (!_addPlaceholderRow && showPlaceholder) {
-      _addPlaceholderRow = true;
-      shouldNotify |= true;
-    }
 
     coordinator.adaptRemoval(newRowIndices: newIndices);
 

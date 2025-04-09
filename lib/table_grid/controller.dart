@@ -1,6 +1,7 @@
 import 'package:acre_labs/table_grid/cell_detail.dart';
 import 'package:acre_labs/table_grid/controller_impl.dart';
 import 'package:acre_labs/table_grid/models.dart';
+import 'package:acre_labs/table_grid/span.dart';
 import 'package:acre_labs/table_grid/table_span_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:two_dimensional_scrollables/two_dimensional_scrollables.dart';
@@ -44,15 +45,14 @@ base mixin TableCoordinatorMixin {
   }
 }
 
-abstract base class TableController {
+abstract base class TableController with ChangeNotifier {
   TableController();
 
   factory TableController.impl({
     required List<ColumnId> columns,
-    required DefaultTableSpanManager spanManager,
+    required TableExtentManager extentManager,
     List initialRows = const [],
     bool alwaysShowHeader = true,
-    bool? addPlaceholderRow,
     List<TableSelectionStrategy> selectionStrategies = const [
       TableSelectionStrategy.row
     ],
@@ -62,10 +62,9 @@ abstract base class TableController {
   }) =>
       TableControllerImpl(
         columns: columns,
-        spanManager: spanManager,
+        extentManager: extentManager,
         initialRows: initialRows,
         alwaysShowHeader: alwaysShowHeader,
-        addPlaceholderRow: addPlaceholderRow,
         selectionStrategies: selectionStrategies,
         hoveringStrategies: hoveringStrategies,
       );
@@ -100,7 +99,6 @@ abstract base class TableController {
   int get rowCount;
   int get pinnedRowCount;
   int get dataCount;
-  bool get hasPlaceholderRow;
 
   void addRows(
     List rows, {
@@ -116,22 +114,18 @@ abstract base class TableController {
   void unpinRow(int dataIndex);
 
   void toggleHeaderVisibility(bool alwaysShowHeader);
-  void togglePlaceholder(bool show);
 
-  Listenable get listenable;
+  // Listenable get listenable;
   List<ColumnId> get orderedColumns;
 
-  TableSpan buildRowSpan(int index);
-  TableSpan buildColumnSpan(int index);
+  TableSpan buildRowSpan(int index, TableGridBorder border);
+  TableSpan buildColumnSpan(int index, TableGridBorder border);
 
   T getCellDetail<T extends CellDetail>(TableVicinity vicinity);
   Listenable? getCellActionNotifier(TableVicinity vicinity);
   CellIndex getCellIndex(TableVicinity vicinity);
-  bool isPlaceholderRow(TableVicinity vicinity);
 
   int toVicinityRow(int row);
-
-  void dispose();
 }
 
 // todo: data source exporter xlsx/pdf

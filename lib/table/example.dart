@@ -14,31 +14,14 @@ class TableExample extends StatefulWidget {
 }
 
 class _TableExampleState extends State<TableExample> {
-  final _spanManager = DefaultTableSpanManager(
-    defaultRowSpan: CellSpan.fixed(
-      pixels: 50,
-      decoration: CellSpanDecoration(
-        trailing: BorderSide(
-          color: Colors.black,
-          width: 2,
-        ),
-      ),
-    ),
-    defaultColumnSpan: CellSpan.fixed(
-      pixels: 150,
-      decoration: CellSpanDecoration(
-        leading: BorderSide(
-          color: Colors.black,
-          width: 2,
-        ),
-      ),
-    ),
+  final _extentManager = TableExtentManager(
+    defaultRowExtent: TableExtent.fixed(50),
+    defaultColumnExtent: TableExtent.fixed(100),
   );
 
   late final TableController controller = TableController.impl(
-    addPlaceholderRow: true,
-    columns: List.generate(6, (index) => "C($index)"),
-    spanManager: _spanManager,
+    columns: List.generate(8, (index) => "C($index)"),
+    extentManager: _extentManager,
     hoveringStrategies: [
       TableHoveringStrategy.row,
     ],
@@ -46,7 +29,7 @@ class _TableExampleState extends State<TableExample> {
 
   @override
   void dispose() {
-    _spanManager.dispose();
+    _extentManager.dispose();
     controller.dispose();
     super.dispose();
   }
@@ -57,25 +40,35 @@ class _TableExampleState extends State<TableExample> {
       appBar: AppBar(
         title: const Text('Custom Table Grid Example'),
       ),
-      body: TableGrid(
-        controller: controller,
-        cellBuilder: _buildCell,
-        columnBuilder: _buildColumn,
-        placeholderBuilder: (ctx) {
-          return const Center(
-            child: Text(
-              'No data available',
-              style: TextStyle(fontSize: 16),
+      body: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: TableGrid(
+          controller: controller,
+          cellBuilder: _buildCell,
+          columnBuilder: _buildColumn,
+          border: TableGridBorder(
+            vertical: BorderSide(
+              color: Colors.red,
+              width: 2,
             ),
-          );
-        },
+            horizontal: BorderSide(
+              color: Colors.black,
+              width: 2,
+            ),
+          ),
+          loadingBuilder: (ctx) {
+            return CircularProgressIndicator(
+              color: Colors.red,
+            );
+          },
+        ),
       ),
       persistentFooterAlignment: AlignmentDirectional.center,
       persistentFooterButtons: [
         IconButton(
           icon: const Icon(Icons.add),
           onPressed: () {
-            _addRows(5);
+            _addRows(1);
           },
         ),
         TextButton(
@@ -108,8 +101,7 @@ class _TableExampleState extends State<TableExample> {
         }
       },
       child: Container(
-        color: detail.isPinned ? Colors.blue : Colors.grey,
-        margin: const EdgeInsets.all(10),
+        color: detail.isPinned ? Colors.blue : Colors.yellow,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -145,7 +137,16 @@ class _TableExampleState extends State<TableExample> {
         }
       },
       child: Container(
-        color: detail.selected ? Colors.green : Colors.white,
+        // color: detail.selected ? Colors.green : Colors.white,
+        decoration: BoxDecoration(
+          color: detail.selected ? Colors.green : Colors.blue,
+          border: detail.selected
+              ? Border.all(
+                  color: Colors.yellow,
+                  width: 2,
+                )
+              : null,
+        ),
         child: Center(
           child: Text(
             "$name, ${detail.columnId}",

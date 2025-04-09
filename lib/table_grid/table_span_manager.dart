@@ -2,86 +2,92 @@ import 'package:acre_labs/table_grid/cell_detail.dart';
 import 'package:acre_labs/table_grid/controller.dart';
 import 'package:acre_labs/table_grid/span.dart';
 
-final class DefaultTableSpanManager with TableCoordinatorMixin {
-  DefaultTableSpanManager({
-    required CellSpan defaultRowSpan,
-    required CellSpan defaultColumnSpan,
-    Map<ColumnId, CellSpan>? columnSpans,
-    Map<int, CellSpan>? rowSpans,
-  })  : _defaultRowSpan = defaultRowSpan,
-        _defaultColumnSpan = defaultColumnSpan {
-    if (columnSpans != null) {
-      _mutatedColumnSpans.addAll(columnSpans);
+final class TableExtentManager with TableCoordinatorMixin {
+  TableExtentManager({
+    required TableExtent defaultRowExtent,
+    required TableExtent defaultColumnExtent,
+    Map<int, TableExtent>? rowExtents,
+    Map<ColumnId, TableExtent>? columnExtents,
+  })  : _defaultRowExtent = defaultRowExtent,
+        _defaultColumnExtent = defaultColumnExtent {
+    if (rowExtents != null) {
+      _mutatedRowExtents.addAll(rowExtents);
     }
 
-    if (rowSpans != null) {
-      _mutatedRowSpans.addAll(rowSpans);
+    if (columnExtents != null) {
+      _mutatedColumnExtents.addAll(columnExtents);
     }
   }
 
-  final Map<ColumnId, CellSpan> _mutatedColumnSpans = {};
-  final Map<int, CellSpan> _mutatedRowSpans = {};
+  final Map<int, TableExtent> _mutatedRowExtents = {};
+  final Map<ColumnId, TableExtent> _mutatedColumnExtents = {};
 
-  CellSpan _defaultRowSpan;
+  TableExtent _defaultRowExtent;
+  TableExtent _defaultColumnExtent;
 
-  set defaultRowSpan(CellSpan value) {
-    if (_defaultRowSpan == value) return;
+  set defaultRowExtent(TableExtent value) {
+    if (_defaultRowExtent == value) return;
 
-    _defaultRowSpan = value;
+    _defaultRowExtent = value;
     coordinator.notifyRebuild();
   }
 
-  CellSpan _defaultColumnSpan;
-  set defaultColumnSpan(CellSpan value) {
-    if (_defaultColumnSpan == value) return;
+  set defaultColumnExtent(TableExtent value) {
+    if (_defaultColumnExtent == value) return;
 
-    _defaultColumnSpan = value;
+    _defaultColumnExtent = value;
     coordinator.notifyRebuild();
   }
 
-  CellSpan getColumnSpan(ColumnId columnId) {
-    return _mutatedColumnSpans[columnId] ?? _defaultColumnSpan;
-  }
-
-  CellSpan getRowSpan(int rowIndex) {
-    return _mutatedRowSpans[rowIndex] ?? _defaultRowSpan;
-  }
-
-  void setRowSpan(int index, CellSpan span) {
-    if (_mutatedRowSpans[index] == span || _defaultRowSpan == span) return;
-
-    _mutatedRowSpans[index] = span;
-    coordinator.notifyRebuild();
-  }
-
-  void setColumnSpan(ColumnId columnId, CellSpan span) {
-    if (_mutatedColumnSpans[columnId] == span || _defaultColumnSpan == span) {
-      return;
+  TableExtent getRowExtent(int index) {
+    if (_mutatedRowExtents.containsKey(index)) {
+      return _mutatedRowExtents[index]!;
     }
 
-    _mutatedColumnSpans[columnId] = span;
+    return _defaultRowExtent;
+  }
+
+  TableExtent getColumnExtent(ColumnId columnId) {
+    if (_mutatedColumnExtents.containsKey(columnId)) {
+      return _mutatedColumnExtents[columnId]!;
+    }
+
+    return _defaultColumnExtent;
+  }
+
+  void setRowExtent(int index, TableExtent extent) {
+    if (_mutatedRowExtents[index] == extent) return;
+
+    _mutatedRowExtents[index] = extent;
+    coordinator.notifyRebuild();
+  }
+
+  void setColumnExtent(ColumnId columnId, TableExtent extent) {
+    if (_mutatedColumnExtents[columnId] == extent) return;
+
+    _mutatedColumnExtents[columnId] = extent;
     coordinator.notifyRebuild();
   }
 
   @override
   void dispose() {
-    _mutatedColumnSpans.clear();
-    _mutatedRowSpans.clear();
+    _mutatedRowExtents.clear();
+    _mutatedColumnExtents.clear();
     super.dispose();
   }
 
-  DefaultTableSpanManager copyWith({
-    CellSpan? defaultRowSpan,
-    CellSpan? defaultColumnSpan,
-    Map<ColumnId, CellSpan>? columnSpans,
-    Map<int, CellSpan>? rowSpans,
+  TableExtentManager copyWith({
+    TableExtent? defaultRowExtent,
+    TableExtent? defaultColumnExtent,
+    Map<int, TableExtent>? rowExtents,
+    Map<ColumnId, TableExtent>? columnExtents,
     bool rebuildImmediately = true,
   }) {
-    final newManager = DefaultTableSpanManager(
-      defaultRowSpan: defaultRowSpan ?? _defaultRowSpan,
-      defaultColumnSpan: defaultColumnSpan ?? _defaultColumnSpan,
-      columnSpans: columnSpans ?? _mutatedColumnSpans,
-      rowSpans: rowSpans ?? _mutatedRowSpans,
+    final newManager = TableExtentManager(
+      defaultRowExtent: defaultRowExtent ?? _defaultRowExtent,
+      defaultColumnExtent: defaultColumnExtent ?? _defaultColumnExtent,
+      rowExtents: rowExtents ?? _mutatedRowExtents,
+      columnExtents: columnExtents ?? _mutatedColumnExtents,
     )..bindCoordinator(coordinator);
 
     dispose();
@@ -92,4 +98,13 @@ final class DefaultTableSpanManager with TableCoordinatorMixin {
 
     return newManager;
   }
+
+  TableExtent get defaultRowExtent => _defaultRowExtent;
+  TableExtent get defaultColumnExtent => _defaultColumnExtent;
+
+  Map<ColumnId, TableExtent> get columnExtents => Map.unmodifiable(
+        _mutatedColumnExtents,
+      );
+
+  Map<int, TableExtent> get rowExtents => Map.unmodifiable(_mutatedRowExtents);
 }

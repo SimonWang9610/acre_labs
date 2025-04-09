@@ -1,5 +1,9 @@
-import 'package:acre_labs/table_grid/cell_detail.dart';
+// ignore_for_file: public_member_api_docs, sort_constructors_first
+import 'package:acre_labs/table_grid/span.dart';
 import 'package:flutter/material.dart';
+
+import 'package:acre_labs/table_grid/cell_detail.dart';
+import 'package:two_dimensional_scrollables/two_dimensional_scrollables.dart';
 
 class CellIndex {
   final int row;
