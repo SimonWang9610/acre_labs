@@ -1,6 +1,6 @@
 import 'package:acre_labs/interactive_custom_form/cf_json_field.dart';
-import 'package:acre_labs/interactive_custom_form/field_command.dart';
-import 'package:acre_labs/interactive_custom_form/field_widget.dart';
+import 'package:acre_labs/interactive_custom_form/field_action.dart';
+import 'package:acre_labs/interactive_custom_form/core.dart';
 import 'package:flutter/material.dart';
 
 class TimeDurationPickerWidget extends StatefulWidget {
