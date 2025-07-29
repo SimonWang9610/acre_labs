@@ -1,51 +1,47 @@
-import 'package:acre_labs/interactive_custom_form/cf_json_field.dart';
-import 'package:acre_labs/interactive_custom_form/core.dart';
-import 'package:acre_labs/interactive_custom_form/json_form.dart';
+import 'package:acre_labs/dynamic_custom_form/core.dart';
 import 'package:flutter/material.dart';
 
-class InteractiveCustomFormExample extends StatefulWidget {
-  const InteractiveCustomFormExample({super.key});
+class DynamicCustomFormExample extends StatefulWidget {
+  final List<Map<String, dynamic>> formDefinition;
+  const DynamicCustomFormExample({
+    super.key,
+    required this.formDefinition,
+  });
 
   @override
-  State<InteractiveCustomFormExample> createState() =>
-      _InteractiveCustomFormExampleState();
+  State<DynamicCustomFormExample> createState() =>
+      _DynamicCustomFormExampleState();
 }
 
-class _InteractiveCustomFormExampleState
-    extends State<InteractiveCustomFormExample> {
-  final _manager = CFCentralManager();
+class _DynamicCustomFormExampleState extends State<DynamicCustomFormExample> {
+  late final registry = CFFieldRegistry(
+    formDefinitions: widget.formDefinition,
+  );
 
   @override
   void dispose() {
-    _manager.reset();
+    registry.reset();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final fields =
-        jsonFormDefinitions.map((json) => CFJsonField.fromJson(json)).toList();
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Interactive Custom Form Example'),
       ),
       body: CFManager(
-        centralManager: _manager,
+        registry: registry,
         child: Column(
           spacing: 20,
           children: [
             Expanded(
               child: ListView.builder(
-                itemCount: fields.length,
-                itemBuilder: (context, index) {
-                  final field = fields[index];
-                  return Padding(
+                itemCount: registry.fieldCount,
+                itemBuilder: (context, index) => Padding(
                     padding:
                         const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-                    child: CFFieldWidget(field: field),
-                  );
-                },
+                    child: registry.buildFieldByIndex(context, index)),
               ),
             ),
             ElevatedButton(
@@ -54,7 +50,7 @@ class _InteractiveCustomFormExampleState
                   context: context,
                   builder: (context) {
                     final values =
-                        _manager.getFormValues(excludeInvisible: true);
+                        registry.getFormValues(excludeInvisible: true);
 
                     return AlertDialog(
                       title: Text('Submitted Values'),

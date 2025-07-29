@@ -1,20 +1,19 @@
-import 'package:acre_labs/interactive_custom_form/cf_json_field.dart';
-import 'package:acre_labs/interactive_custom_form/field_action.dart';
-import 'package:acre_labs/interactive_custom_form/core.dart';
+import 'package:acre_labs/dynamic_custom_form/core.dart';
+import 'package:acre_labs/dynamic_custom_form/json_field.dart';
 import 'package:flutter/material.dart';
 
 class TimeDurationPickerWidget extends StatefulWidget {
   static const name = 'TimeDurationPickerWidget';
 
-  final CFJsonField jsonField;
-  final CFFieldAction? action;
-  final Widget? readonlyIndicator;
+  final JsonField jsonField;
+  final UIAction? action;
+  final bool readonly;
 
   const TimeDurationPickerWidget({
     super.key,
     required this.jsonField,
     this.action,
-    this.readonlyIndicator,
+    this.readonly = false,
   });
 
   @override
@@ -32,9 +31,8 @@ class _TimeDurationPickerWidgetState extends State<TimeDurationPickerWidget> {
   @override
   void initState() {
     super.initState();
-    _currentDuration = widget.jsonField.fieldJson["initialValue"] != null
-        ? PickedTimeDuration.fromString(
-            widget.jsonField.fieldJson["initialValue"])
+    _currentDuration = widget.action?.data != null
+        ? PickedTimeDuration.fromString(widget.action!.data)
         : null;
 
     _month = TextEditingController(text: _currentDuration?.months?.toString());
@@ -47,29 +45,16 @@ class _TimeDurationPickerWidgetState extends State<TimeDurationPickerWidget> {
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    context.reportValueChange(
-        widget.jsonField.label, _currentDuration?.getFormattedDuration());
-  }
-
-  @override
   void didUpdateWidget(covariant TimeDurationPickerWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    if (widget.action?.value != null) {
-      final newDuration = PickedTimeDuration.fromString(widget.action!.value);
+    if (widget.action?.data != null) {
+      final newDuration = PickedTimeDuration.fromString(widget.action!.data);
       _month.text = newDuration.months?.toString() ?? '';
       _day.text = newDuration.days?.toString() ?? '';
       _hour.text = newDuration.hours?.toString() ?? '';
 
       _currentDuration = newDuration;
-
-      context.reportValueChange(
-        widget.jsonField.label,
-        newDuration.getFormattedDuration(),
-      );
-      context.reportItemActions(widget.jsonField.fieldJson);
     }
   }
 
@@ -95,7 +80,14 @@ class _TimeDurationPickerWidgetState extends State<TimeDurationPickerWidget> {
               widget.jsonField.label,
               style: Theme.of(context).textTheme.titleMedium,
             ),
-            if (widget.readonlyIndicator != null) widget.readonlyIndicator!,
+            if (widget.readonly)
+              Tooltip(
+                message: 'This field is read-only',
+                child: const Icon(
+                  Icons.do_not_disturb_alt_rounded,
+                  color: Colors.red,
+                ),
+              ),
           ],
         ),
         Container(
