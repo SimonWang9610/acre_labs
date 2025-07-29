@@ -64,6 +64,10 @@ class _CFStateWrapperWidgetState extends State<CFStateWrapperWidget>
         final visible = action?.state?.visible ?? true;
         final readonly = action?.state?.readonly ?? false;
 
+        print(
+          'Building field: $fieldLabel, visible: $visible, readonly: $readonly',
+        );
+
         _isVisible = visible;
 
         return Visibility(

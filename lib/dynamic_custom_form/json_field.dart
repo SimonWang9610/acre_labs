@@ -9,6 +9,9 @@
 /// }
 /// ```
 class UIAction {
+  static const nullTriggerKey = "#null";
+  static const notNullTriggerKey = "#notNull";
+
   final StateAction? state;
   final dynamic data;
 

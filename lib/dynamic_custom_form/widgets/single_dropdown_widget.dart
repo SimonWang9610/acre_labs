@@ -58,6 +58,8 @@ class SingleDropdownButtonFormFieldWidget extends StatefulWidget {
 
 class _DropdownButtonFormFieldState
     extends State<SingleDropdownButtonFormFieldWidget> {
+  late final _loading = ValueNotifier<bool>(false);
+
   Map<String, dynamic>? _selected;
   final List<DropdownMenuItem> _items = [];
 
@@ -72,6 +74,13 @@ class _DropdownButtonFormFieldState
       covariant SingleDropdownButtonFormFieldWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     _updateItems();
+    _loadIfNeeded();
+  }
+
+  @override
+  void dispose() {
+    _loading.dispose();
+    super.dispose();
   }
 
   @override
@@ -125,11 +134,12 @@ class _DropdownButtonFormFieldState
   void _updateItems() {
     _items.clear();
 
-    final items = widget.jsonField["items"] as List<Map<String, dynamic>>?;
+    final items =
+        widget.jsonField["items"] as List<Map<String, dynamic>>? ?? [];
 
     _selected = null;
 
-    for (final item in items ?? []) {
+    for (final item in items) {
       if (widget.action?.data != null &&
           widget.action?.data["key"] == item["key"]) {
         _selected = item;
@@ -144,17 +154,78 @@ class _DropdownButtonFormFieldState
       );
     }
 
-    if (_selected != null) {
-      context.reportActions(
-        widget.jsonField.actions?[_selected!["key"]] ?? {},
-      );
-    }
+    String? selectedActionKey = _selected?["key"];
+
+    selectedActionKey ??= _selected != null
+        ? UIAction.notNullTriggerKey
+        : UIAction.nullTriggerKey;
+
+    context.reportActions(
+      widget.jsonField.actions?[selectedActionKey] ?? {},
+    );
 
     context.reportValueChange(widget.jsonField.label, _selected);
   }
 
   void _report(Map<String, dynamic> item) {
-    context.reportActions(widget.jsonField.actions?[item["key"]] ?? {});
+    final actionKeys = <String>[
+      item["key"],
+      UIAction.notNullTriggerKey,
+    ];
+
+    for (final actionKey in actionKeys) {
+      context.reportActions(widget.jsonField.actions?[actionKey] ?? {});
+    }
+
     context.reportValueChange(widget.jsonField.label, item);
+  }
+
+  Future<List<Map<String, dynamic>>> _mockFetch() async {
+    await Future.delayed(const Duration(milliseconds: 200));
+
+    final dropdownType = widget.jsonField["dropdownType"];
+
+    return [
+      {
+        "key": "Item 1",
+        "child": {"type": "Text", "data": "$dropdownType Item 1"}
+      },
+      {
+        "key": "Item 2",
+        "child": {"type": "Text", "data": "$dropdownType Item 2"}
+      },
+      {
+        "key": "Item 3",
+        "child": {"type": "Text", "data": "$dropdownType Item 3"}
+      },
+    ];
+  }
+
+  Future<void> _loadIfNeeded() async {
+    final dropdownType = widget.jsonField["dropdownType"];
+
+    if (dropdownType == null) return;
+
+    try {
+      final loaded = await _mockFetch();
+      if (!mounted) return;
+
+      _items.addAll(
+        loaded.map(
+          (item) => DropdownMenuItem(
+            value: item,
+            child: item["child"] != null
+                ? CFWidgetBuilder.buildJsonWidget(context, item["child"])
+                : Text(item["key"] ?? "<Unknown Item>"),
+          ),
+        ),
+      );
+
+      setState(() {});
+    } catch (e) {
+      debugPrint(
+        'Failed to load items for $dropdownType: $e',
+      );
+    }
   }
 }

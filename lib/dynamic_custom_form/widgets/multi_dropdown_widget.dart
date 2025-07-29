@@ -30,6 +30,7 @@ class _MultiSelectDropdownWidgetState extends State<MultiSelectDropdownWidget> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _updateItems();
+    _loadIfNeeded();
   }
 
   @override
@@ -41,6 +42,7 @@ class _MultiSelectDropdownWidgetState extends State<MultiSelectDropdownWidget> {
   @override
   Widget build(BuildContext context) {
     Widget dropdown = DropdownButtonFormField(
+      value: _selected.isNotEmpty ? _selected.last : null,
       items: _items,
       onChanged: (value) {
         if (value == null) return;
@@ -57,7 +59,18 @@ class _MultiSelectDropdownWidgetState extends State<MultiSelectDropdownWidget> {
           _selected.add(value);
         }
 
-        context.reportActions(widget.jsonField.actions?[value["key"]] ?? {});
+        final actionKeys = <String>[value["key"]];
+
+        if (_selected.isEmpty) {
+          actionKeys.add(UIAction.nullTriggerKey);
+        } else {
+          actionKeys.add(UIAction.notNullTriggerKey);
+        }
+
+        for (final actionKey in actionKeys) {
+          final actions = widget.jsonField.actions?[actionKey];
+          context.reportActions(actions ?? {});
+        }
 
         context.reportValueChange(
           widget.jsonField.label,
@@ -137,9 +150,73 @@ class _MultiSelectDropdownWidgetState extends State<MultiSelectDropdownWidget> {
 
     context.reportValueChange(widget.jsonField.label, _selected);
 
-    for (final item in _selected) {
-      context.reportActions(
-        widget.jsonField.actions?[item["key"]] ?? {},
+    final actionKeys = _selected.map((e) => e["key"]).toList();
+
+    if (_selected.isEmpty) {
+      actionKeys.add(UIAction.nullTriggerKey);
+    } else {
+      actionKeys.add(UIAction.notNullTriggerKey);
+    }
+
+    for (final actionKey in actionKeys) {
+      final actions = widget.jsonField.actions?[actionKey];
+      context.reportActions(actions ?? {});
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> _mockFetch() async {
+    await Future.delayed(const Duration(milliseconds: 200));
+
+    final dropdownType = widget.jsonField["dropdownType"];
+
+    return [
+      {
+        "key": "Item 1",
+        "child": {"type": "Text", "data": "$dropdownType Item 1"}
+      },
+      {
+        "key": "Item 2",
+        "child": {"type": "Text", "data": "$dropdownType Item 2"}
+      },
+      {
+        "key": "Item 3",
+        "child": {"type": "Text", "data": "$dropdownType Item 3"}
+      },
+      {
+        "key": "Item 4",
+        "child": {"type": "Text", "data": "$dropdownType Item 4"}
+      },
+      {
+        "key": "Item 5",
+        "child": {"type": "Text", "data": "$dropdownType Item 5"}
+      },
+    ];
+  }
+
+  Future<void> _loadIfNeeded() async {
+    final dropdownType = widget.jsonField["dropdownType"];
+
+    if (dropdownType == null) return;
+
+    try {
+      final loaded = await _mockFetch();
+      if (!mounted) return;
+
+      _items.addAll(
+        loaded.map(
+          (item) => DropdownMenuItem(
+            value: item,
+            child: item["child"] != null
+                ? CFWidgetBuilder.buildJsonWidget(context, item["child"])
+                : Text(item["key"] ?? "<Unknown Item>"),
+          ),
+        ),
+      );
+
+      setState(() {});
+    } catch (e) {
+      debugPrint(
+        'Failed to load items for $dropdownType: $e',
       );
     }
   }

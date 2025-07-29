@@ -29,6 +29,8 @@ Typically, it is used to describe the field's UI behavior, such as whether it is
 ## `@actions`
 > `@actions` is optional. If provided, it will be used to configure the actions that will be triggered when the field is selected or interacted with.
 
+Introduce special conditional triggerKeys: `#null` and `#notNull` to allow triggering actions when the field widget meet some conditions. 
+
 ```json
 {
     "@actions": {
@@ -39,6 +41,14 @@ Typically, it is used to describe the field's UI behavior, such as whether it is
         "triggerKey2": {
             "fieldC": <UIAction>,
             "fieldD": <UIAction>,
+        },
+        "#null": {
+            "fieldE": <UIAction>,
+            "fieldF": <UIAction>,
+        },
+        "#notNull": {
+            "fieldG": <UIAction>,
+            "fieldH": <UIAction>,
         }
     }
 }

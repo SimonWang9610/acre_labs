@@ -35,6 +35,7 @@ class __ExampleState extends State<_Example> {
   final _examples = {
     "Door Template": doorTemplateSchema,
     "Dynamic Text": dynamicTextSchema,
+    "Null Action Trigger": nullActionSchema,
   };
 
   final _selectedSchema = ValueNotifier<String>("Door Template");

@@ -208,3 +208,61 @@ final dynamicTextSchema = [
     }
   }
 ];
+
+final nullActionSchema = [
+  {
+    "type": "DropdownButtonFormFieldWidget",
+    "label": "Single Item",
+    "dropdownType": "single",
+    "@actions": {
+      "#null": {
+        "Single Selection Info": {
+          "@data": "<This action is triggered when no item is selected>"
+        }
+      },
+      "#notNull": {
+        "Single Selection Info": {
+          "@data":
+              "<This action is triggered when at least one item is selected>",
+        }
+      }
+    }
+  },
+  {
+    "type": "Align",
+    "child": {
+      "type": "Text",
+      "label": "Single Selection Info",
+      "nonField": true,
+      "data": "This action is triggered when no item is selected.",
+    }
+  },
+  {
+    "type": "DropdownButtonFormFieldWidget",
+    "label": "Multiple Items",
+    "dropdownType": "multiple",
+    "isMultiSelect": true,
+    "@actions": {
+      "#null": {
+        "Multi Selection Info": {
+          "@data": "<This action is triggered when no item is selected>"
+        }
+      },
+      "#notNull": {
+        "Multi Selection Info": {
+          "@data":
+              "<This action is triggered when at least one item is selected>",
+        }
+      }
+    }
+  },
+  {
+    "type": "Align",
+    "child": {
+      "type": "Text",
+      "label": "Multi Selection Info",
+      "nonField": true,
+      "data": "This action is triggered when no item is selected.",
+    }
+  },
+];
