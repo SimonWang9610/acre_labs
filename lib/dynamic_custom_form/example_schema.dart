@@ -181,7 +181,8 @@ final dynamicTextSchema = [
     "@actions": {
       "Show Details": {
         "Info Section": {
-          "@state": {"visible": true}
+          "@state": {"visible": true},
+          "@data": "Showing Details"
         }
       },
       "Hide Details": {
