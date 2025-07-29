@@ -159,9 +159,12 @@ Any action triggers `@data` of this field will update its value in `CFManager`. 
     "isOptional": <boolean>,
     "isRequired": <boolean>,
     "hint": "<string>",
-    "dropdownType": "<data-source-type | optional>"
+    "dropdownType": "<data-source-type | optional>",
+    "nonField": <boolean | optional>,
 }
 ```
+
+If `nonField` is set to true, it indicates that this field is not part of the form submission and it is only for UI purposes. For example, it could be used to display a message or a section header.
 
 # Examples
 

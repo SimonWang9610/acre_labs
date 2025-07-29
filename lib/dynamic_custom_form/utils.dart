@@ -6,6 +6,8 @@ import 'package:acre_labs/dynamic_custom_form/widgets/single_dropdown_widget.dar
 import 'package:acre_labs/dynamic_custom_form/widgets/time_duration_widget.dart';
 import 'package:flutter/material.dart';
 
+import 'non_field_widgets/dynamic_text.dart';
+
 /// A helper class to build widgets from JSON definitions.
 class CFWidgetBuilder {
   static Widget buildJsonWidget(
@@ -152,6 +154,10 @@ class CFFieldBuilder {
           jsonField: field,
           action: action,
           readonly: readonly,
+        ),
+      DynamicTextWidget.name => DynamicTextWidget(
+          jsonField: field,
+          action: action,
         ),
       _ => throw UnsupportedError(
           'Unsupported field type: ${field.type}',

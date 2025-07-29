@@ -14,9 +14,21 @@ class DynamicCustomFormExample extends StatefulWidget {
 }
 
 class _DynamicCustomFormExampleState extends State<DynamicCustomFormExample> {
-  late final registry = CFFieldRegistry(
+  late CFFieldRegistry registry = CFFieldRegistry(
     formDefinitions: widget.formDefinition,
   );
+
+  @override
+  void didUpdateWidget(covariant DynamicCustomFormExample oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.formDefinition != widget.formDefinition) {
+      registry.reset();
+      registry = CFFieldRegistry(
+        formDefinitions: widget.formDefinition,
+      );
+    }
+  }
 
   @override
   void dispose() {
@@ -26,49 +38,43 @@ class _DynamicCustomFormExampleState extends State<DynamicCustomFormExample> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Interactive Custom Form Example'),
-      ),
-      body: CFManager(
-        registry: registry,
-        child: Column(
-          spacing: 20,
-          children: [
-            Expanded(
-              child: ListView.builder(
-                itemCount: registry.fieldCount,
-                itemBuilder: (context, index) => Padding(
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-                    child: registry.buildFieldByIndex(context, index)),
-              ),
+    return CFManager(
+      registry: registry,
+      child: Column(
+        spacing: 20,
+        children: [
+          Expanded(
+            child: ListView.builder(
+              itemCount: registry.fieldCount,
+              itemBuilder: (context, index) => Padding(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                  child: registry.buildFieldByIndex(context, index)),
             ),
-            ElevatedButton(
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (context) {
-                    final values =
-                        registry.getFormValues(excludeInvisible: true);
+          ),
+          ElevatedButton(
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) {
+                  final values = registry.getFormValues(excludeInvisible: true);
 
-                    return AlertDialog(
-                      title: Text('Submitted Values'),
-                      content: Text(
-                        values.isEmpty
-                            ? 'No values submitted.'
-                            : values.entries
-                                .map((e) => '${e.key}: ${e.value}')
-                                .join('\n'),
-                      ),
-                    );
-                  },
-                );
-              },
-              child: Text('Submit'),
-            ),
-          ],
-        ),
+                  return AlertDialog(
+                    title: Text('Submitted Values'),
+                    content: Text(
+                      values.isEmpty
+                          ? 'No values submitted.'
+                          : values.entries
+                              .map((e) => '${e.key}: ${e.value}')
+                              .join('\n'),
+                    ),
+                  );
+                },
+              );
+            },
+            child: Text('Submit'),
+          ),
+        ],
       ),
     );
   }

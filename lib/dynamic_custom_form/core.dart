@@ -26,6 +26,10 @@ class _CFStateWrapperWidgetState extends State<CFStateWrapperWidget>
     return config?["isOptional"] == true || config?["isRequired"] == false;
   }
 
+  bool get isNonField {
+    return widget.jsonField.isNonField;
+  }
+
   bool get isVisible => _isVisible;
   late bool _isVisible;
 
@@ -108,15 +112,19 @@ class CFFieldRegistry {
   }
 
   void reportValueChange(String label, dynamic value) {
+    final fieldState = _fieldStates[label];
+
+    // do not collect value for non-field but dynamic widgets
+    if (fieldState == null || fieldState.isNonField) return;
+
     assert(() {
-      if (_fieldValues.containsKey(label)) {
-        final currentValue = _fieldValues[label];
-        if (currentValue != null &&
-            currentValue.runtimeType != value.runtimeType) {
-          return false;
-        }
+      final currentValue = _fieldValues[label];
+
+      if (currentValue == null || value == null) {
+        return true;
       }
-      return true;
+
+      return currentValue.runtimeType == value.runtimeType;
     }(), "Field value type inconsistent: $label: $value");
 
     _fieldValues[label] = value;
@@ -144,7 +152,7 @@ class CFFieldRegistry {
 
     for (final label in _fieldValues.keys) {
       final field = _fieldStates[label];
-      if (field == null) continue;
+      if (field == null || field.isNonField) continue;
       if (excludeInvisible && !field.isVisible) continue;
 
       values[label] = _fieldValues[label];

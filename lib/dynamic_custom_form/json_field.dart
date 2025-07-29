@@ -113,6 +113,10 @@ class JsonField {
   dynamic operator [](String key) {
     return _raw[key];
   }
+
+  bool get isNonField {
+    return uiConfig?["nonField"] == true || _raw["nonField"] == true;
+  }
 }
 
 void _convertPreset(Map<String, dynamic> json) {

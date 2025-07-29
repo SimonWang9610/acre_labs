@@ -1,4 +1,4 @@
-final oldSchema = [
+final doorTemplateSchema = [
   {
     "type": "DropdownButtonFormFieldWidget",
     "label": "Door Template",
@@ -157,5 +157,53 @@ final oldSchema = [
         "child": {"type": "Text", "data": "Unlocked"}
       }
     ]
+  }
+];
+
+final dynamicTextSchema = [
+  {
+    "type": "DropdownButtonFormFieldWidget",
+    "label": "Display Mode",
+
+    /// indicate this is a non-field widget, only for UI purpose,
+    /// its value will not be collected in the form submission
+    "nonField": true,
+    "items": [
+      {
+        "key": "Show Details",
+        "child": {"type": "Text", "data": "Show Details"}
+      },
+      {
+        "key": "Hide Details",
+        "child": {"type": "Text", "data": "Hide Details"}
+      },
+    ],
+    "@actions": {
+      "Show Details": {
+        "Info Section": {
+          "@state": {"visible": true}
+        }
+      },
+      "Hide Details": {
+        "Info Section": {
+          "@state": {"visible": false}
+        }
+      },
+    }
+  },
+  {
+    "type": "Align",
+    "child": {
+      "type": "Text",
+      "label": "Info Section",
+
+      /// indicate this is a non-field widget, only for UI purpose
+      /// its value will not be collected in the form submission
+      "nonField": true,
+      "@preset": {
+        "@state": {"visible": false},
+      },
+      "data": "Text content able to be controlled by dropdown"
+    }
   }
 ];
