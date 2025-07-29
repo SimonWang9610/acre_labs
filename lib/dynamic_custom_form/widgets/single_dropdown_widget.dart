@@ -154,15 +154,18 @@ class _DropdownButtonFormFieldState
       );
     }
 
-    String? selectedActionKey = _selected?["key"];
+    final actionKeys = <String>[];
 
-    selectedActionKey ??= _selected != null
-        ? UIAction.notNullTriggerKey
-        : UIAction.nullTriggerKey;
+    if (_selected != null) {
+      actionKeys.add(_selected!["key"]);
+      actionKeys.add(UIAction.notNullTriggerKey);
+    } else {
+      actionKeys.add(UIAction.nullTriggerKey);
+    }
 
-    context.reportActions(
-      widget.jsonField.actions?[selectedActionKey] ?? {},
-    );
+    for (final actionKey in actionKeys) {
+      context.reportActions(widget.jsonField.actions?[actionKey] ?? {});
+    }
 
     context.reportValueChange(widget.jsonField.label, _selected);
   }
