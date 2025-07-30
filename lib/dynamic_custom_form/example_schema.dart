@@ -234,7 +234,7 @@ final nullActionSchema = [
       "type": "Text",
       "label": "Single Selection Info",
       "nonField": true,
-      "data": "This action is triggered when no item is selected.",
+      "data": "Single Selection Info",
     }
   },
   {
@@ -243,12 +243,12 @@ final nullActionSchema = [
     "dropdownType": "multiple",
     "isMultiSelect": true,
     "@actions": {
-      "#null": {
+      "#empty": {
         "Multi Selection Info": {
           "@data": "<This action is triggered when no item is selected>"
         }
       },
-      "#notNull": {
+      "#notEmpty": {
         "Multi Selection Info": {
           "@data":
               "<This action is triggered when at least one item is selected>",
@@ -262,7 +262,32 @@ final nullActionSchema = [
       "type": "Text",
       "label": "Multi Selection Info",
       "nonField": true,
-      "data": "This action is triggered when no item is selected.",
+      "data": "Multi Selection Info",
     }
   },
+  {
+    "type": "CheckboxWidget",
+    "label": "Checkbox with Actions",
+    "@actions": {
+      "#checked": {
+        "Checkbox Info": {
+          "@data": "<This action is triggered when checkbox is checked>"
+        }
+      },
+      "#unchecked": {
+        "Checkbox Info": {
+          "@data": "<This action is triggered when checkbox is unchecked>"
+        }
+      }
+    }
+  },
+  {
+    "type": "Align",
+    "child": {
+      "type": "Text",
+      "label": "Checkbox Info",
+      "nonField": true,
+      "data": "Checkbox Info",
+    }
+  }
 ];

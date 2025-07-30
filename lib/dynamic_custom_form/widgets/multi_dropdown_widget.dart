@@ -62,9 +62,9 @@ class _MultiSelectDropdownWidgetState extends State<MultiSelectDropdownWidget> {
         final actionKeys = <String>[value["key"]];
 
         if (_selected.isEmpty) {
-          actionKeys.add(UIAction.nullTriggerKey);
+          actionKeys.add(UIAction.emptyTrigger);
         } else {
-          actionKeys.add(UIAction.notNullTriggerKey);
+          actionKeys.add(UIAction.notEmptyTrigger);
         }
 
         for (final actionKey in actionKeys) {
@@ -153,9 +153,9 @@ class _MultiSelectDropdownWidgetState extends State<MultiSelectDropdownWidget> {
     final actionKeys = _selected.map((e) => e["key"]).toList();
 
     if (_selected.isEmpty) {
-      actionKeys.add(UIAction.nullTriggerKey);
+      actionKeys.add(UIAction.emptyTrigger);
     } else {
-      actionKeys.add(UIAction.notNullTriggerKey);
+      actionKeys.add(UIAction.notEmptyTrigger);
     }
 
     for (final actionKey in actionKeys) {

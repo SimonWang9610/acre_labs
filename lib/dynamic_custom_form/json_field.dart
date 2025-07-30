@@ -9,8 +9,19 @@
 /// }
 /// ```
 class UIAction {
-  static const nullTriggerKey = "#null";
-  static const notNullTriggerKey = "#notNull";
+  /// Triggers for field that can check if its value is null or not.
+  /// e.g., for single select dropdowns, time pickers, etc.
+  static const nullTrigger = "#null";
+  static const notNullTrigger = "#notNull";
+
+  /// Triggers for field that can check if its value is empty or not.
+  /// e.g., for text fields, multiselect dropdowns, etc.
+  static const emptyTrigger = "#empty";
+  static const notEmptyTrigger = "#notEmpty";
+
+  /// Triggers for checkbox actions
+  static const checkedTrigger = "#checked";
+  static const uncheckedTrigger = "#unchecked";
 
   final StateAction? state;
   final dynamic data;

@@ -158,9 +158,9 @@ class _DropdownButtonFormFieldState
 
     if (_selected != null) {
       actionKeys.add(_selected!["key"]);
-      actionKeys.add(UIAction.notNullTriggerKey);
+      actionKeys.add(UIAction.notNullTrigger);
     } else {
-      actionKeys.add(UIAction.nullTriggerKey);
+      actionKeys.add(UIAction.nullTrigger);
     }
 
     for (final actionKey in actionKeys) {
@@ -173,7 +173,7 @@ class _DropdownButtonFormFieldState
   void _report(Map<String, dynamic> item) {
     final actionKeys = <String>[
       item["key"],
-      UIAction.notNullTriggerKey,
+      UIAction.notNullTrigger,
     ];
 
     for (final actionKey in actionKeys) {

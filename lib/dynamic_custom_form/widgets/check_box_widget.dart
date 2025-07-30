@@ -27,6 +27,7 @@ class _CheckboxWidgetState extends State<CheckboxWidget> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _isChecked = widget.action?.data == true;
+    _report(_isChecked);
   }
 
   @override
@@ -35,6 +36,7 @@ class _CheckboxWidgetState extends State<CheckboxWidget> {
 
     if (widget.action?.data != null) {
       _isChecked = widget.action?.data == true;
+      _report(_isChecked);
     }
   }
 
@@ -47,9 +49,7 @@ class _CheckboxWidgetState extends State<CheckboxWidget> {
 
         _isChecked = value;
 
-        final actionsMap =
-            widget.jsonField.actions?[_isChecked ? 'true' : 'false'];
-        _report(actionsMap);
+        _report(_isChecked);
 
         setState(() {});
       },
@@ -91,11 +91,15 @@ class _CheckboxWidgetState extends State<CheckboxWidget> {
     );
   }
 
-  void _report(Map<String, UIAction>? actionsMap) {
-    context.reportActions(actionsMap ?? {});
+  void _report(bool value) {
+    final actionTrigger =
+        value ? UIAction.checkedTrigger : UIAction.uncheckedTrigger;
+    context.reportActions(
+      widget.jsonField.actions?[actionTrigger] ?? {},
+    );
     context.reportValueChange(
       widget.jsonField.label,
-      _isChecked,
+      value,
     );
   }
 }
