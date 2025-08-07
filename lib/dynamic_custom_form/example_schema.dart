@@ -178,6 +178,7 @@ final dynamicTextSchema = [
         "child": {"type": "Text", "data": "Hide Details"}
       },
     ],
+    "initialValue": {"key": "Show Details"},
     "@actions": {
       "Show Details": {
         "Info Section": {

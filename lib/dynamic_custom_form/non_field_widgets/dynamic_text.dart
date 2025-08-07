@@ -1,16 +1,16 @@
-import 'package:acre_labs/dynamic_custom_form/core.dart';
-import 'package:acre_labs/dynamic_custom_form/json_field.dart';
+import 'package:acre_labs/dynamic_custom_form/core/extensions.dart';
+import 'package:acre_labs/dynamic_custom_form/core/json_field.dart';
 import 'package:flutter/material.dart';
 
 class DynamicTextWidget extends StatefulWidget {
-  static const name = "Text";
+  static bool isTypeMatched(String type) {
+    return type == 'TextWidget' || type == 'Text';
+  }
 
   final JsonField jsonField;
-  final UIAction? action;
   const DynamicTextWidget({
     super.key,
     required this.jsonField,
-    this.action,
   });
 
   @override
@@ -23,13 +23,23 @@ class _DynamicTextWidgetState extends State<DynamicTextWidget> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _update();
-  }
+    final initialText = context.getPreAssignedValue(widget.jsonField) ??
+        widget.jsonField.initialData ??
+        widget.jsonField["data"] ??
+        "";
 
-  @override
-  void didUpdateWidget(covariant DynamicTextWidget oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _update();
+    _text = initialText;
+
+    context.subscribeDataAction(
+      widget.jsonField,
+      onData: (val) {
+        _update(val);
+
+        if (mounted) setState(() {});
+      },
+    );
+
+    _update(initialText);
   }
 
   @override
@@ -37,10 +47,17 @@ class _DynamicTextWidgetState extends State<DynamicTextWidget> {
     return Text(_text);
   }
 
-  void _update() {
-    _text = widget.action?.data ?? widget.jsonField["data"] ?? "";
+  void _update(dynamic value) {
+    if (value == null || value is! String) return;
 
-    final actions = widget.jsonField.actions?[_text];
-    context.reportActions(actions ?? {});
+    _text = value;
+
+    final actionTrigger =
+        _text.isEmpty ? UIAction.emptyTrigger : UIAction.notEmptyTrigger;
+
+    final actions = widget.jsonField.actions?[_text] ??
+        widget.jsonField.actions?[actionTrigger];
+
+    context.reportActions(actions);
   }
 }

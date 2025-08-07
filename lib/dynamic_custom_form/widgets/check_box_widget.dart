@@ -1,43 +1,53 @@
-import 'package:acre_labs/dynamic_custom_form/core.dart';
-import 'package:acre_labs/dynamic_custom_form/json_field.dart';
+import 'package:acre_labs/dynamic_custom_form/core/extensions.dart';
+import 'package:acre_labs/dynamic_custom_form/core/json_field.dart';
+
 import 'package:flutter/material.dart';
 
-class CheckboxWidget extends StatefulWidget {
-  static const name = 'CheckboxWidget';
+class DynamicCheckboxWidget extends StatefulWidget {
+  static const name = 'DynamicCheckboxWidget';
+
+  static bool isTypeMatched(String type) {
+    return type == 'CheckboxWidget' || type == 'Checkbox';
+  }
 
   final JsonField jsonField;
-  final UIAction? action;
+
   final bool readonly;
 
-  const CheckboxWidget({
+  const DynamicCheckboxWidget({
     super.key,
     required this.jsonField,
-    this.action,
     this.readonly = false,
   });
 
   @override
-  State<CheckboxWidget> createState() => _CheckboxWidgetState();
+  State<DynamicCheckboxWidget> createState() => _DynamicCheckboxWidgetState();
 }
 
-class _CheckboxWidgetState extends State<CheckboxWidget> {
+class _DynamicCheckboxWidgetState extends State<DynamicCheckboxWidget> {
   late bool _isChecked;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _isChecked = widget.action?.data == true;
-    _report(_isChecked);
-  }
+    final preAssigned = context.getPreAssignedValue(widget.jsonField);
 
-  @override
-  void didUpdateWidget(covariant CheckboxWidget oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
-    if (widget.action?.data != null) {
-      _isChecked = widget.action?.data == true;
-      _report(_isChecked);
+    if (preAssigned != null) {
+      _isChecked = preAssigned.toLowerCase() == 'true';
+    } else {
+      _isChecked = widget.jsonField.initialData == true;
     }
+
+    _report(_isChecked);
+
+    context.subscribeDataAction(
+      widget.jsonField,
+      onData: (val) {
+        if (val is bool) {
+          _onValueChange(val);
+        }
+      },
+    );
   }
 
   @override
@@ -91,15 +101,21 @@ class _CheckboxWidgetState extends State<CheckboxWidget> {
     );
   }
 
-  void _report(bool value) {
+  void _onValueChange(bool? value) {
+    if (value == null) return;
+
+    _isChecked = value;
+    _report(_isChecked);
+
+    setState(() {});
+  }
+
+  void _report(bool? value) {
+    if (value == null) return;
+
+    context.reportFieldChange(widget.jsonField, "$value");
     final actionTrigger =
         value ? UIAction.checkedTrigger : UIAction.uncheckedTrigger;
-    context.reportActions(
-      widget.jsonField.actions?[actionTrigger] ?? {},
-    );
-    context.reportValueChange(
-      widget.jsonField.label,
-      value,
-    );
+    context.reportActions(widget.jsonField.actions?[actionTrigger]);
   }
 }

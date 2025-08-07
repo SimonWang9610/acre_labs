@@ -1,18 +1,18 @@
-import 'package:acre_labs/dynamic_custom_form/core.dart';
-import 'package:acre_labs/dynamic_custom_form/json_field.dart';
+import 'package:acre_labs/dynamic_custom_form/core/extensions.dart';
+import 'package:acre_labs/dynamic_custom_form/core/json_field.dart';
 import 'package:flutter/material.dart';
 
 class TimeDurationPickerWidget extends StatefulWidget {
-  static const name = 'TimeDurationPickerWidget';
+  static bool isTypeMatched(String type) {
+    return type == 'TimeDurationPickerWidget' || type == 'TimeDuration';
+  }
 
   final JsonField jsonField;
-  final UIAction? action;
   final bool readonly;
 
   const TimeDurationPickerWidget({
     super.key,
     required this.jsonField,
-    this.action,
     this.readonly = false,
   });
 
@@ -31,8 +31,8 @@ class _TimeDurationPickerWidgetState extends State<TimeDurationPickerWidget> {
   @override
   void initState() {
     super.initState();
-    _currentDuration = widget.action?.data != null
-        ? PickedTimeDuration.fromString(widget.action!.data)
+    _currentDuration = widget.jsonField.initialData != null
+        ? PickedTimeDuration.fromString(widget.jsonField.initialData)
         : null;
 
     _month = TextEditingController(text: _currentDuration?.months?.toString());
@@ -45,17 +45,15 @@ class _TimeDurationPickerWidgetState extends State<TimeDurationPickerWidget> {
   }
 
   @override
-  void didUpdateWidget(covariant TimeDurationPickerWidget oldWidget) {
-    super.didUpdateWidget(oldWidget);
+  void didChangeDependencies() {
+    super.didChangeDependencies();
 
-    if (widget.action?.data != null) {
-      final newDuration = PickedTimeDuration.fromString(widget.action!.data);
-      _month.text = newDuration.months?.toString() ?? '';
-      _day.text = newDuration.days?.toString() ?? '';
-      _hour.text = newDuration.hours?.toString() ?? '';
-
-      _currentDuration = newDuration;
-    }
+    context.subscribeDataAction(
+      widget.jsonField,
+      onData: (val) {
+        _update(val);
+      },
+    );
   }
 
   @override
@@ -152,8 +150,20 @@ class _TimeDurationPickerWidgetState extends State<TimeDurationPickerWidget> {
     _currentDuration =
         PickedTimeDuration(months: months, days: days, hours: hours);
 
-    context.reportValueChange(
-        widget.jsonField.label, _currentDuration?.getFormattedDuration());
+    context.reportFieldChange(
+        widget.jsonField, _currentDuration?.getFormattedDuration());
+  }
+
+  void _update(dynamic value) {
+    if (value is! String) return;
+
+    final newDuration = PickedTimeDuration.fromString(value);
+
+    _month.text = newDuration.months?.toString() ?? '';
+    _day.text = newDuration.days?.toString() ?? '';
+    _hour.text = newDuration.hours?.toString() ?? '';
+
+    _currentDuration = newDuration;
   }
 }
 

@@ -1,20 +1,25 @@
-import 'package:acre_labs/dynamic_custom_form/core.dart';
-import 'package:acre_labs/dynamic_custom_form/json_field.dart';
-import 'package:acre_labs/dynamic_custom_form/utils.dart';
+import 'dart:async';
+
+import 'package:acre_labs/dynamic_custom_form/core/extensions.dart';
+import 'package:acre_labs/dynamic_custom_form/core/json_field.dart';
+import 'package:acre_labs/dynamic_custom_form/core/utils.dart';
 import 'package:acre_labs/dynamic_custom_form/widgets/multi_dropdown_widget.dart';
 import 'package:flutter/material.dart';
 
 class DropdownButtonFormFieldWidget extends StatelessWidget {
   static const name = 'DropdownButtonFormFieldWidget';
 
+  static bool isTypeMatched(String type) {
+    return type == 'DropdownButtonFormFieldWidget' || type == 'DropdownButton';
+  }
+
   final JsonField jsonField;
-  final UIAction? action;
+
   final bool readonly;
 
   const DropdownButtonFormFieldWidget({
     super.key,
     required this.jsonField,
-    this.action,
     this.readonly = false,
   });
 
@@ -25,12 +30,10 @@ class DropdownButtonFormFieldWidget extends StatelessWidget {
     return !isMultiSelect
         ? SingleDropdownButtonFormFieldWidget(
             jsonField: jsonField,
-            action: action,
             readonly: readonly,
           )
-        : MultiSelectDropdownWidget(
+        : DynamicMultiSelectDropdownWidget(
             jsonField: jsonField,
-            action: action,
             readonly: readonly,
           );
   }
@@ -40,14 +43,12 @@ class SingleDropdownButtonFormFieldWidget extends StatefulWidget {
   static const name = 'DropdownButtonFormField';
 
   final JsonField jsonField;
-  final UIAction? action;
 
   final bool readonly;
 
   const SingleDropdownButtonFormFieldWidget({
     super.key,
     required this.jsonField,
-    this.action,
     this.readonly = false,
   });
 
@@ -66,20 +67,24 @@ class _DropdownButtonFormFieldState
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _updateItems();
-  }
 
-  @override
-  void didUpdateWidget(
-      covariant SingleDropdownButtonFormFieldWidget oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _updateItems();
+    _updateItems(widget.jsonField.initialData);
+
+    context.subscribeDataAction(
+      widget.jsonField,
+      onData: (val) {
+        _updateItems(val);
+        if (mounted) setState(() {});
+      },
+    );
+
     _loadIfNeeded();
   }
 
   @override
   void dispose() {
     _loading.dispose();
+
     super.dispose();
   }
 
@@ -131,7 +136,7 @@ class _DropdownButtonFormFieldState
     );
   }
 
-  void _updateItems() {
+  void _updateItems(dynamic value) {
     _items.clear();
 
     final items =
@@ -140,12 +145,12 @@ class _DropdownButtonFormFieldState
     _selected = null;
 
     for (final item in items) {
-      if (widget.action?.data != null &&
-          widget.action?.data["key"] == item["key"]) {
+      if (value != null && value["key"] == item["key"]) {
         _selected = item;
       }
 
-      final child = CFWidgetBuilder.buildJsonWidget(context, item["child"]);
+      final child =
+          DynamicWidgetBuilder.buildJsonWidget(context, item["child"]);
       _items.add(
         DropdownMenuItem(
           value: item,
@@ -167,7 +172,7 @@ class _DropdownButtonFormFieldState
       context.reportActions(widget.jsonField.actions?[actionKey] ?? {});
     }
 
-    context.reportValueChange(widget.jsonField.label, _selected);
+    context.reportFieldChange(widget.jsonField, _selected);
   }
 
   void _report(Map<String, dynamic> item) {
@@ -180,7 +185,7 @@ class _DropdownButtonFormFieldState
       context.reportActions(widget.jsonField.actions?[actionKey] ?? {});
     }
 
-    context.reportValueChange(widget.jsonField.label, item);
+    context.reportFieldChange(widget.jsonField, item);
   }
 
   Future<List<Map<String, dynamic>>> _mockFetch() async {
@@ -218,7 +223,7 @@ class _DropdownButtonFormFieldState
           (item) => DropdownMenuItem(
             value: item,
             child: item["child"] != null
-                ? CFWidgetBuilder.buildJsonWidget(context, item["child"])
+                ? DynamicWidgetBuilder.buildJsonWidget(context, item["child"])
                 : Text(item["key"] ?? "<Unknown Item>"),
           ),
         ),

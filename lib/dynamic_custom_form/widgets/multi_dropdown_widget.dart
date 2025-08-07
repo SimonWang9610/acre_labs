@@ -1,42 +1,47 @@
-import 'package:acre_labs/dynamic_custom_form/core.dart';
-import 'package:acre_labs/dynamic_custom_form/json_field.dart';
-import 'package:acre_labs/dynamic_custom_form/utils.dart';
+import 'dart:async';
+
+import 'package:acre_labs/dynamic_custom_form/core/extensions.dart';
+import 'package:acre_labs/dynamic_custom_form/core/json_field.dart';
+import 'package:acre_labs/dynamic_custom_form/core/utils.dart';
 import 'package:flutter/material.dart';
 
-class MultiSelectDropdownWidget extends StatefulWidget {
-  static const name = 'MultiSelectDropdownWidget';
+class DynamicMultiSelectDropdownWidget extends StatefulWidget {
+  static const name = 'DynamicMultiSelectDropdownWidget';
 
   final JsonField jsonField;
-  final UIAction? action;
   final bool readonly;
 
-  const MultiSelectDropdownWidget({
+  const DynamicMultiSelectDropdownWidget({
     super.key,
     required this.jsonField,
-    this.action,
     this.readonly = false,
   });
 
   @override
-  State<MultiSelectDropdownWidget> createState() =>
-      _MultiSelectDropdownWidgetState();
+  State<DynamicMultiSelectDropdownWidget> createState() =>
+      _DynamicMultiSelectDropdownWidgetState();
 }
 
-class _MultiSelectDropdownWidgetState extends State<MultiSelectDropdownWidget> {
+class _DynamicMultiSelectDropdownWidgetState
+    extends State<DynamicMultiSelectDropdownWidget> {
   final List<Map<String, dynamic>> _selected = [];
   final List<DropdownMenuItem> _items = [];
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _updateItems();
-    _loadIfNeeded();
-  }
 
-  @override
-  void didUpdateWidget(covariant MultiSelectDropdownWidget oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    _updateItems();
+    _updateItems(widget.jsonField.initialData);
+
+    context.subscribeDataAction(
+      widget.jsonField,
+      onData: (val) {
+        _updateItems(val);
+        if (mounted) setState(() {});
+      },
+    );
+
+    _loadIfNeeded();
   }
 
   @override
@@ -72,8 +77,8 @@ class _MultiSelectDropdownWidgetState extends State<MultiSelectDropdownWidget> {
           context.reportActions(actions ?? {});
         }
 
-        context.reportValueChange(
-          widget.jsonField.label,
+        context.reportFieldChange(
+          widget.jsonField,
           _selected
               .map((e) => {
                     "key": e["key"],
@@ -126,29 +131,39 @@ class _MultiSelectDropdownWidgetState extends State<MultiSelectDropdownWidget> {
     );
   }
 
-  void _updateItems() {
+  void _updateItems(dynamic value) {
     _selected.clear();
     _items.clear();
 
     final items = widget.jsonField["items"] as List<Map<String, dynamic>>?;
     final actionSelectedKeys =
-        (widget.action?.data as List<dynamic>?)?.map((e) => e["key"]).toSet() ??
-            {};
+        (value as List<dynamic>?)?.map((e) => e["key"]).toSet() ?? {};
 
     for (final item in items ?? []) {
       if (actionSelectedKeys.contains(item["key"])) {
         _selected.add(item);
       }
-      final child = CFWidgetBuilder.buildJsonWidget(context, item["child"]);
+
       _items.add(
         DropdownMenuItem(
           value: item,
-          child: child,
+          child: DynamicWidgetBuilder.buildJsonWidget(
+            context,
+            item["child"],
+          ),
         ),
       );
     }
 
-    context.reportValueChange(widget.jsonField.label, _selected);
+    context.reportFieldChange(
+      widget.jsonField,
+      _selected
+          .map((e) => {
+                "key": e["key"],
+                "value": e["value"],
+              })
+          .toList(),
+    );
 
     final actionKeys = _selected.map((e) => e["key"]).toList();
 
@@ -207,7 +222,7 @@ class _MultiSelectDropdownWidgetState extends State<MultiSelectDropdownWidget> {
           (item) => DropdownMenuItem(
             value: item,
             child: item["child"] != null
-                ? CFWidgetBuilder.buildJsonWidget(context, item["child"])
+                ? DynamicWidgetBuilder.buildJsonWidget(context, item["child"])
                 : Text(item["key"] ?? "<Unknown Item>"),
           ),
         ),

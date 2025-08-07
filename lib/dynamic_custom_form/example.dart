@@ -1,4 +1,4 @@
-import 'package:acre_labs/dynamic_custom_form/core.dart';
+import 'package:acre_labs/dynamic_custom_form/core/form_registry.dart';
 import 'package:flutter/material.dart';
 
 class DynamicCustomFormExample extends StatefulWidget {
@@ -14,7 +14,7 @@ class DynamicCustomFormExample extends StatefulWidget {
 }
 
 class _DynamicCustomFormExampleState extends State<DynamicCustomFormExample> {
-  late CFFieldRegistry registry = CFFieldRegistry(
+  late DynamicFormRegistry registry = DynamicFormRegistry(
     formDefinitions: widget.formDefinition,
   );
 
@@ -24,7 +24,7 @@ class _DynamicCustomFormExampleState extends State<DynamicCustomFormExample> {
 
     if (oldWidget.formDefinition != widget.formDefinition) {
       registry.reset();
-      registry = CFFieldRegistry(
+      registry = DynamicFormRegistry(
         formDefinitions: widget.formDefinition,
       );
     }
@@ -44,12 +44,10 @@ class _DynamicCustomFormExampleState extends State<DynamicCustomFormExample> {
         spacing: 20,
         children: [
           Expanded(
-            child: ListView.builder(
-              itemCount: registry.fieldCount,
-              itemBuilder: (context, index) => Padding(
-                  padding:
-                      const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-                  child: registry.buildFieldByIndex(context, index)),
+            child: SingleChildScrollView(
+              child: Column(
+                children: registry.buildFormFields(context),
+              ),
             ),
           ),
           ElevatedButton(

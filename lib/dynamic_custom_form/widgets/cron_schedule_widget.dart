@@ -1,53 +1,59 @@
-import 'package:acre_labs/dynamic_custom_form/core.dart';
-import 'package:acre_labs/dynamic_custom_form/json_field.dart';
+import 'package:acre_labs/dynamic_custom_form/core/extensions.dart';
+import 'package:acre_labs/dynamic_custom_form/core/json_field.dart';
 import 'package:flutter/material.dart';
 
-class CronSchedulePickerWidget extends StatefulWidget {
-  static const name = 'CronSchedulePickerWidget';
+class DynamicCronSchedulePickerWidget extends StatefulWidget {
+  static bool isTypeMatched(String type) {
+    return type == 'CronSchedulePickerWidget' || type == 'CronSchedule';
+  }
 
   final JsonField jsonField;
-  final UIAction? action;
   final bool readonly;
-  const CronSchedulePickerWidget({
+  const DynamicCronSchedulePickerWidget({
     super.key,
     required this.jsonField,
-    this.action,
     this.readonly = false,
   });
 
   @override
-  State<CronSchedulePickerWidget> createState() =>
-      _CronSchedulePickerWidgetState();
+  State<DynamicCronSchedulePickerWidget> createState() =>
+      _DynamicCronSchedulePickerWidgetState();
 }
 
-class _CronSchedulePickerWidgetState extends State<CronSchedulePickerWidget> {
-  late final _cron = TextEditingController(
-    text: widget.action?.data ?? '',
-  );
+class _DynamicCronSchedulePickerWidgetState
+    extends State<DynamicCronSchedulePickerWidget> {
+  TextEditingController? _cron;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _cron.addListener(
+    _cron?.dispose();
+
+    _cron = TextEditingController(
+      text: context.getPreAssignedValue(widget.jsonField) ??
+          widget.jsonField.initialData?.toString() ??
+          '',
+    );
+
+    _cron?.addListener(
       () {
-        if (_cron.text.isNotEmpty) {
-          context.reportValueChange(widget.jsonField.label, _cron.text);
+        context.reportFieldChange(widget.jsonField, _cron?.text);
+      },
+    );
+
+    context.subscribeDataAction(
+      widget.jsonField,
+      onData: (val) {
+        if (val is String) {
+          _cron?.text = val;
         }
       },
     );
   }
 
   @override
-  void didUpdateWidget(covariant CronSchedulePickerWidget oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.action?.data != null) {
-      _cron.text = widget.action!.data;
-    }
-  }
-
-  @override
   void dispose() {
-    _cron.dispose();
+    _cron?.dispose();
     super.dispose();
   }
 

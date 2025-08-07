@@ -1,15 +1,13 @@
-import 'package:acre_labs/dynamic_custom_form/core.dart';
-import 'package:acre_labs/dynamic_custom_form/json_field.dart';
-import 'package:acre_labs/dynamic_custom_form/widgets/check_box_widget.dart';
-import 'package:acre_labs/dynamic_custom_form/widgets/cron_schedule_widget.dart';
-import 'package:acre_labs/dynamic_custom_form/widgets/single_dropdown_widget.dart';
-import 'package:acre_labs/dynamic_custom_form/widgets/time_duration_widget.dart';
+import 'package:acre_labs/dynamic_custom_form/core/form_registry.dart';
+import 'package:acre_labs/dynamic_custom_form/core/json_field.dart';
 import 'package:flutter/material.dart';
 
-import 'non_field_widgets/dynamic_text.dart';
-
 /// A helper class to build widgets from JSON definitions.
-class CFWidgetBuilder {
+class DynamicWidgetBuilder {
+  /// Builds a widget based on the provided JSON definition.
+  ///
+  /// As long as the JSON contains a valid `type` and `label`, we will treat it as dynamic field widget;
+  /// otherwise, it will be treated as a static widget.
   static Widget buildJsonWidget(
       BuildContext context, Map<String, dynamic>? json) {
     if (json == null) return const SizedBox.shrink();
@@ -22,7 +20,7 @@ class CFWidgetBuilder {
     }
 
     if (label != null) {
-      return CFStateWrapperWidget(
+      return DynamicFieldWrapper(
         jsonField: JsonField.fromJson(json),
       );
     }
@@ -123,45 +121,5 @@ class CFWidgetBuilder {
     return Expanded(
       child: child,
     );
-  }
-}
-
-/// A helper class to build field widgets from [JsonField] definitions.
-class CFFieldBuilder {
-  static Widget buildFieldWidget(
-    BuildContext context,
-    JsonField field, {
-    UIAction? action,
-    bool readonly = false,
-  }) {
-    return switch (field.type) {
-      CheckboxWidget.name => CheckboxWidget(
-          jsonField: field,
-          action: action,
-          readonly: readonly,
-        ),
-      CronSchedulePickerWidget.name => CronSchedulePickerWidget(
-          jsonField: field,
-          action: action,
-          readonly: readonly,
-        ),
-      TimeDurationPickerWidget.name => TimeDurationPickerWidget(
-          jsonField: field,
-          action: action,
-          readonly: readonly,
-        ),
-      DropdownButtonFormFieldWidget.name => DropdownButtonFormFieldWidget(
-          jsonField: field,
-          action: action,
-          readonly: readonly,
-        ),
-      DynamicTextWidget.name => DynamicTextWidget(
-          jsonField: field,
-          action: action,
-        ),
-      _ => throw UnsupportedError(
-          'Unsupported field type: ${field.type}',
-        ),
-    };
   }
 }
