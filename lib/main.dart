@@ -1,7 +1,9 @@
 import 'package:acre_labs/cron_job/example.dart';
 import 'package:acre_labs/dynamic_custom_form/example.dart';
 import 'package:acre_labs/dynamic_custom_form/example_schema.dart';
+import 'package:acre_labs/floating_dialog/alarm/global_event_alarm_listener.dart';
 import 'package:acre_labs/labs/bigint_example.dart';
+import 'package:acre_labs/snapshot/example.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -19,7 +21,8 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: _Example(),
+      // home: _Example(),
+      home: GlobalEventAlarmListener(),
     );
   }
 }
@@ -60,10 +63,12 @@ class __ExampleState extends State<_Example> {
               return DropdownButton<String>(
                 value: schemaName,
                 items: _examples.keys
-                    .map((key) => DropdownMenuItem(
-                          value: key,
-                          child: Text(key),
-                        ))
+                    .map(
+                      (key) => DropdownMenuItem(
+                        value: key,
+                        child: Text(key),
+                      ),
+                    )
                     .toList(),
                 onChanged: (value) {
                   if (value != null) {
