@@ -16,7 +16,7 @@ class GlobalEventAlarmListener extends ConsumerStatefulWidget {
 class _GlobalEventAlarmListenerState
     extends ConsumerState<GlobalEventAlarmListener>
     with SingleTickerProviderStateMixin {
-  late final floating = AlignmentAnimator(
+  late final floating = FloatingAlignment(
     AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
@@ -39,11 +39,8 @@ class _GlobalEventAlarmListenerState
         duration: const Duration(seconds: 2),
 
         // /// put the alarm list close to the bottom left
-        tween: Tween(
-          begin: Alignment.topRight,
-          end: const Alignment(-0.95, 0.8),
-        ),
-        // target: const Alignment(-0.95, 0.8),
+        // start: Alignment.topRight,
+        end: const Alignment(-0.95, 0.8),
         builder: (_, animation) => AlignTransition(
           alignment: animation,
           child: _ShowingAlarmedEventList(streamController.stream, floating),
@@ -110,7 +107,7 @@ class _GlobalEventAlarmListenerState
 }
 
 class _ShowingAlarmedEventList extends ConsumerStatefulWidget {
-  final AlignmentAnimator floating;
+  final FloatingAlignment floating;
   final Stream<String> lastEvent;
   const _ShowingAlarmedEventList(this.lastEvent, this.floating);
 
@@ -171,7 +168,7 @@ class __ShowingAlarmedEventListState
             },
             onPanEnd: (details) {
               print("pan end");
-              widget.floating.autoAlign(Axis.horizontal);
+              widget.floating.autoAlign(Axis.vertical);
             },
             // onTap: () {
             //   if (_current == Alignment.bottomLeft) {

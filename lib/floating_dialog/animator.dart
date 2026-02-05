@@ -33,7 +33,12 @@ class _OverlayManager {
   }
 }
 
-abstract class OverlayAnimator<T> {
+abstract interface class DisposableOverlay {
+  void dispose();
+  void hide();
+}
+
+class OverlayAnimator<T> implements DisposableOverlay {
   final _OverlayManager _overlay;
   final AnimationController _controller;
 
@@ -42,61 +47,41 @@ abstract class OverlayAnimator<T> {
   Animation<double> get parent => _controller;
   bool get isShowing => _overlay.isShowing;
 
+  Animation<T>? _currentAnimation;
+
   Future<void> show(
     BuildContext context, {
-    Tween<T>? tween,
-    T? target,
+    required Animation<T> animation,
     required AnimatedWidgetBuilder<T> builder,
     Duration duration = const Duration(milliseconds: 300),
-    Curve curve = Curves.linear,
   }) async {
     if (_overlay.isShowing) return;
 
-    assert(
-      tween != null || target != null,
-      'Either tween or target must be provided',
-    );
+    _currentAnimation = animation;
+    _overlay._insert(context, (ctx) => builder(ctx, _currentAnimation!));
 
-    setupAnimation(
-      tween: tween,
-      target: target,
-      curve: curve,
-    );
-
-    _overlay._insert(context, (ctx) => builder(ctx, animation));
-
-    await animate(
-      tween: tween,
-      target: target,
+    await drive(
+      animation: animation,
       duration: duration,
-      curve: curve,
     );
   }
 
+  @override
   void hide() {
     _overlay._remove();
   }
 
   @mustCallSuper
-  FutureOr<void> animate({
-    Tween<T>? tween,
-    T? target,
+  FutureOr<T> drive({
+    required Animation<T> animation,
     Duration? duration,
-    Curve? curve,
     bool animating = true,
-    bool reverse = false,
   }) async {
-    if (!_overlay.hasOverlay) return;
+    _currentAnimation = animation;
+
+    if (!_overlay.hasOverlay) return _currentAnimation!.value;
 
     _controller.reset();
-
-    setupAnimation(
-      tween: tween,
-      target: target,
-      curve: curve,
-    );
-
-    final usingAnimation = animation;
 
     if (duration != null) {
       _controller.duration = duration;
@@ -110,29 +95,22 @@ abstract class OverlayAnimator<T> {
       await _controller.animateTo(1.0);
     }
 
-    onAnimationComplete(usingAnimation.value);
+    return _currentAnimation!.value;
   }
 
-  FutureOr<void> forward({double? from}) async {
+  FutureOr<T> forward({double? from}) async {
     await _controller.forward(from: from);
+    return _currentAnimation!.value;
   }
 
-  FutureOr<void> reverse({double? from}) async {
+  FutureOr<T> reverse({double? from}) async {
     await _controller.reverse(from: from);
+    return _currentAnimation!.value;
   }
 
+  @override
   void dispose() {
     hide();
     _controller.dispose();
   }
-
-  void setupAnimation({
-    Tween<T>? tween,
-    T? target,
-    Curve? curve,
-  });
-
-  void onAnimationComplete(T endValue) {}
-
-  Animation<T> get animation;
 }

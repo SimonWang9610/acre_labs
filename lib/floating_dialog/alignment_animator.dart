@@ -3,22 +3,51 @@ import 'dart:async';
 import 'package:acre_labs/floating_dialog/animator.dart';
 import 'package:flutter/cupertino.dart';
 
-class AlignmentAnimator extends OverlayAnimator<Alignment> {
+class FloatingAlignment implements DisposableOverlay {
+  final OverlayAnimator<Alignment> _animator;
   final double scale;
 
   late Alignment _alignment;
   late Offset _screenCenter;
 
-  AlignmentAnimator(
-    super.controller, {
-    this.scale = 0.95,
-  });
+  FloatingAlignment(
+    AnimationController controller, {
+    this.scale = 0.9,
+  }) : _animator = OverlayAnimator<Alignment>(controller);
+
+  Future<void> show(
+    BuildContext context, {
+    Alignment? start,
+    Alignment? end,
+    required AnimatedWidgetBuilder<Alignment> builder,
+    Duration duration = const Duration(milliseconds: 300),
+    Curve curve = Curves.linear,
+  }) async {
+    assert(
+      start != null || end != null,
+      'Either start or end alignment must be provided',
+    );
+
+    _screenCenter = MediaQuery.of(context).size.center(Offset.zero);
+    _alignment = start ?? end ?? Alignment.center;
+
+    await _animator.show(
+      context,
+      animation: _createAnimation(
+        start: start,
+        end: end,
+        curve: curve,
+      ),
+      builder: builder,
+      duration: duration,
+    );
+  }
 
   /// Move to the given position.
   ///
   /// the position is used to calculate the new alignment.
   Future<bool> moveTo(Offset position) async {
-    if (!isShowing) return false;
+    if (!_animator.isShowing) return false;
 
     double dx = (position.dx - _screenCenter.dx) / _screenCenter.dx;
     double dy = (position.dy - _screenCenter.dy) / _screenCenter.dy;
@@ -30,13 +59,19 @@ class AlignmentAnimator extends OverlayAnimator<Alignment> {
 
     if (_alignment == newAlign) return false;
 
-    await animate(
-      tween: Tween(
-        begin: newAlign,
+    _alignment = newAlign;
+
+    await _animator.drive(
+      /// purposely create an always stopped animation to avoid flickering
+      animation: _createAnimation(
+        start: _alignment,
         end: newAlign,
       ),
-      animating: false,
+      duration: const Duration(milliseconds: 300),
     );
+
+    // ensure the alignment is synced
+    _alignment = newAlign;
 
     return true;
   }
@@ -52,17 +87,24 @@ class AlignmentAnimator extends OverlayAnimator<Alignment> {
     Axis axis, {
     Duration duration = const Duration(milliseconds: 300),
   }) async {
-    if (!isShowing) return;
+    if (!_animator.isShowing) return;
 
     final newAlign = switch (axis) {
       Axis.horizontal => _adjustHorizontal(),
       Axis.vertical => _adjustVertical(),
     };
 
-    await animate(
-      target: newAlign,
+    if (_alignment == newAlign) return;
+
+    await _animator.drive(
+      animation: _createAnimation(
+        start: _alignment,
+        end: newAlign,
+      ),
       duration: duration,
     );
+
+    _alignment = newAlign;
   }
 
   Alignment _adjustHorizontal() {
@@ -85,70 +127,40 @@ class AlignmentAnimator extends OverlayAnimator<Alignment> {
     return Alignment(_alignment.x, dy);
   }
 
-  @override
-  Animation<Alignment> get animation => _animation!;
-
-  Animation<Alignment>? _animation;
-
-  @override
-  void onAnimationComplete(Alignment endValue) {
-    _alignment = endValue;
-  }
-
-  @override
-  void setupAnimation({
-    Tween<Alignment>? tween,
-    Alignment? target,
+  Animation<Alignment> _createAnimation({
+    Alignment? start,
+    Alignment? end,
     Curve? curve,
   }) {
     assert(
-      tween != null || target != null,
-      'Either tween or target must be provided',
+      start != null || end != null,
+      'Either start or end alignment must be provided',
     );
 
-    final targetTween =
-        tween ??
-        Tween<Alignment>(
-          begin: _alignment,
-          end: target,
-        );
-
-    assert(
-      targetTween.end != null,
-      'Target alignment must not be null',
+    final tween = AlignmentTween(
+      begin: start ?? _alignment,
+      end: end ?? _alignment,
     );
 
-    final Animation<Alignment> animation;
-
-    if (targetTween.begin == null || targetTween.begin == targetTween.end) {
-      animation = AlwaysStoppedAnimation<Alignment>(
-        targetTween.end as Alignment,
-      );
-    } else {
-      animation = parent.drive(targetTween);
+    if (tween.begin == tween.end) {
+      return AlwaysStoppedAnimation<Alignment>(tween.end!);
     }
 
-    _animation = animation;
+    return tween.animate(
+      CurvedAnimation(
+        parent: _animator.parent,
+        curve: curve ?? Curves.linear,
+      ),
+    );
   }
 
   @override
-  Future<void> show(
-    BuildContext context, {
-    Tween<Alignment>? tween,
-    Alignment? target,
-    required AnimatedWidgetBuilder<Alignment> builder,
-    Duration duration = const Duration(milliseconds: 300),
-    Curve curve = Curves.linear,
-  }) async {
-    _screenCenter = MediaQuery.of(context).size.center(Offset.zero);
-    _alignment = tween?.end ?? target ?? Alignment.center;
+  void dispose() {
+    _animator.dispose();
+  }
 
-    return super.show(
-      context,
-      tween: tween,
-      target: target ?? _alignment,
-      builder: builder,
-      duration: duration,
-    );
+  @override
+  void hide() {
+    _animator.hide();
   }
 }
