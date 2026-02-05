@@ -30,8 +30,13 @@ class AlignmentAnimator extends OverlayAnimator<Alignment> {
 
     if (_alignment == newAlign) return false;
 
-    await animate(target: newAlign, animating: false);
-    _alignment = newAlign;
+    await animate(
+      tween: Tween(
+        begin: newAlign,
+        end: newAlign,
+      ),
+      animating: false,
+    );
 
     return true;
   }
@@ -54,9 +59,10 @@ class AlignmentAnimator extends OverlayAnimator<Alignment> {
       Axis.vertical => _adjustVertical(),
     };
 
-    await animate(target: newAlign, animating: true);
-
-    _alignment = newAlign;
+    await animate(
+      target: newAlign,
+      duration: duration,
+    );
   }
 
   Alignment _adjustHorizontal() {
@@ -80,9 +86,14 @@ class AlignmentAnimator extends OverlayAnimator<Alignment> {
   }
 
   @override
-  ValueNotifier<Animation<Alignment>> get animation => _animation!;
+  Animation<Alignment> get animation => _animation!;
 
-  ValueNotifier<Animation<Alignment>>? _animation;
+  Animation<Alignment>? _animation;
+
+  @override
+  void onAnimationComplete(Alignment endValue) {
+    _alignment = endValue;
+  }
 
   @override
   void setupAnimation({
@@ -102,6 +113,11 @@ class AlignmentAnimator extends OverlayAnimator<Alignment> {
           end: target,
         );
 
+    assert(
+      targetTween.end != null,
+      'Target alignment must not be null',
+    );
+
     final Animation<Alignment> animation;
 
     if (targetTween.begin == null || targetTween.begin == targetTween.end) {
@@ -112,11 +128,7 @@ class AlignmentAnimator extends OverlayAnimator<Alignment> {
       animation = parent.drive(targetTween);
     }
 
-    if (_animation == null) {
-      _animation = ValueNotifier<Animation<Alignment>>(animation);
-    } else {
-      _animation!.value = animation;
-    }
+    _animation = animation;
   }
 
   @override

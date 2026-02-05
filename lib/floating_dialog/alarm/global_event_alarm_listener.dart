@@ -165,31 +165,31 @@ class __ShowingAlarmedEventListState
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: GestureDetector(
-            // onPanUpdate: (details) {
-            //   print("pan update: ${details.globalPosition}");
-            //   widget.floating.moveTo(details.globalPosition);
-            // },
-            // onPanEnd: (details) {
-            //   print("pan end");
-            //   widget.floating.autoAlign(Axis.horizontal);
-            // },
-            onTap: () {
-              if (_current == Alignment.bottomLeft) {
-                widget.floating.animate(target: Alignment.topRight);
-                _current = Alignment.topRight;
-              } else {
-                widget.floating.animate(target: Alignment.bottomLeft);
-                _current = Alignment.bottomLeft;
-              }
-              // if (_end) {
-              //   widget.floating.reverse();
-              // } else {
-              //   widget.floating.forward();
-              // }
-              // widget.floating.forward(from: 0);
-              _end = !_end;
-              print("_end: $_end");
+            onPanUpdate: (details) {
+              print("pan update: ${details.globalPosition}");
+              widget.floating.moveTo(details.globalPosition);
             },
+            onPanEnd: (details) {
+              print("pan end");
+              widget.floating.autoAlign(Axis.horizontal);
+            },
+            // onTap: () {
+            //   if (_current == Alignment.bottomLeft) {
+            //     widget.floating.animate(target: Alignment.topRight);
+            //     _current = Alignment.topRight;
+            //   } else {
+            //     widget.floating.animate(target: Alignment.bottomLeft);
+            //     _current = Alignment.bottomLeft;
+            //   }
+            //   // if (_end) {
+            //   //   widget.floating.reverse();
+            //   // } else {
+            //   //   widget.floating.forward();
+            //   // }
+            //   // widget.floating.forward(from: 0);
+            //   _end = !_end;
+            //   print("_end: $_end");
+            // },
             child: ConstrainedBox(
               constraints: BoxConstraints(maxHeight: height, maxWidth: 400),
               child: AnimatedList(

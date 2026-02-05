@@ -5,34 +5,42 @@ import 'package:flutter/widgets.dart';
 typedef AnimatedWidgetBuilder<T> =
     Widget Function(BuildContext context, Animation<T> animation);
 
-abstract class OverlayAnimator<T> {
-  final AnimationController _controller;
-
-  OverlayAnimator(this._controller) {
-    // _controller.addListener(_rebuild);
-    _controller.addStatusListener((status) {
-      print("Animation status: $status");
-    });
-  }
-
-  Animation<double> get parent => _controller;
-
-  FutureOr<void> forward({double? from}) async {
-    await _controller.forward(from: from);
-  }
-
-  FutureOr<void> reverse({double? from}) async {
-    await _controller.reverse(from: from);
-  }
-
+class _OverlayManager {
   bool get hasOverlay => _overlay != null;
   bool get isShowing => hasOverlay && (_overlay?.mounted ?? false);
 
   OverlayEntry? _overlay;
 
+  void _insert(BuildContext context, WidgetBuilder builder) {
+    assert(!isShowing, 'Overlay is already showing');
+
+    _overlay = OverlayEntry(
+      builder: (ctx) {
+        return builder(ctx);
+      },
+    );
+
+    Overlay.of(context).insert(_overlay!);
+  }
+
+  void _remove() {
+    _overlay?.remove();
+    _overlay = null;
+  }
+
   void _rebuild() {
     _overlay?.markNeedsBuild();
   }
+}
+
+abstract class OverlayAnimator<T> {
+  final _OverlayManager _overlay;
+  final AnimationController _controller;
+
+  OverlayAnimator(this._controller) : _overlay = _OverlayManager();
+
+  Animation<double> get parent => _controller;
+  bool get isShowing => _overlay.isShowing;
 
   Future<void> show(
     BuildContext context, {
@@ -42,7 +50,7 @@ abstract class OverlayAnimator<T> {
     Duration duration = const Duration(milliseconds: 300),
     Curve curve = Curves.linear,
   }) async {
-    if (isShowing) return;
+    if (_overlay.isShowing) return;
 
     assert(
       tween != null || target != null,
@@ -55,44 +63,30 @@ abstract class OverlayAnimator<T> {
       curve: curve,
     );
 
-    _overlay = OverlayEntry(
-      builder: (_) => ValueListenableBuilder(
-        valueListenable: animation,
-        builder: (ctx, animation, _) {
-          print(
-            "Building overlay with animation value: ${animation.value}, hascode: ${animation.hashCode}, status: ${animation.status}",
-          );
-          return builder(ctx, animation);
-        },
-      ),
-      // builder: (ctx) {
-      //   print("Building overlay with animation value: ${animation}");
-      //   return AnimatedBuilder(
-      //     animation: _controller,
-      //     builder: (ctx, child) {
-      //       return builder(ctx, animation);
-      //     },
-      //   );
-      // },
+    _overlay._insert(context, (ctx) => builder(ctx, animation));
+
+    await animate(
+      tween: tween,
+      target: target,
+      duration: duration,
+      curve: curve,
     );
+  }
 
-    Overlay.of(context).insert(_overlay!);
-
-    _controller.duration = duration;
-
-    await _controller.forward(from: 0.0);
+  void hide() {
+    _overlay._remove();
   }
 
   @mustCallSuper
-  Future<void> animate({
+  FutureOr<void> animate({
     Tween<T>? tween,
     T? target,
     Duration? duration,
     Curve? curve,
-    bool animating = false,
+    bool animating = true,
     bool reverse = false,
   }) async {
-    if (!isShowing) return;
+    if (!_overlay.hasOverlay) return;
 
     _controller.reset();
 
@@ -102,16 +96,34 @@ abstract class OverlayAnimator<T> {
       curve: curve,
     );
 
+    final usingAnimation = animation;
+
     if (duration != null) {
       _controller.duration = duration;
     }
 
+    /// rebuild to apply the new animation
+    _overlay._rebuild();
+
     if (animating) {
       /// force the animation direction to forward
       await _controller.animateTo(1.0);
-    } else {
-      _rebuild();
     }
+
+    onAnimationComplete(usingAnimation.value);
+  }
+
+  FutureOr<void> forward({double? from}) async {
+    await _controller.forward(from: from);
+  }
+
+  FutureOr<void> reverse({double? from}) async {
+    await _controller.reverse(from: from);
+  }
+
+  void dispose() {
+    hide();
+    _controller.dispose();
   }
 
   void setupAnimation({
@@ -120,18 +132,7 @@ abstract class OverlayAnimator<T> {
     Curve? curve,
   });
 
-  ValueNotifier<Animation<T>> get animation;
+  void onAnimationComplete(T endValue) {}
 
-  void hide() {
-    if (!hasOverlay) return;
-
-    _overlay?.remove();
-    _overlay = null;
-  }
-
-  void dispose() {
-    hide();
-    _controller.removeListener(_rebuild);
-    _controller.dispose();
-  }
+  Animation<T> get animation;
 }
