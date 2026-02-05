@@ -1,8 +1,7 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:acre_labs/floating_dialog/alarm/event_alarm_tile.dart';
-import 'package:acre_labs/floating_dialog/draggable_floating_button_controller.dart';
+import 'package:acre_labs/floating_dialog/alignment_animator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -15,8 +14,15 @@ class GlobalEventAlarmListener extends ConsumerStatefulWidget {
 }
 
 class _GlobalEventAlarmListenerState
-    extends ConsumerState<GlobalEventAlarmListener> {
-  final floatingController = FloatingDialogController();
+    extends ConsumerState<GlobalEventAlarmListener>
+    with SingleTickerProviderStateMixin {
+  late final floating = AlignmentAnimator(
+    AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    ),
+  );
+
   final events = <String>[];
 
   final streamController = StreamController<String>.broadcast();
@@ -28,16 +34,20 @@ class _GlobalEventAlarmListenerState
     // ensure the floating controller is shown after the first frame
     // this is a floating area for showing alarmed events
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      floatingController.show(
+      floating.show(
         context,
-        duration: const Duration(milliseconds: 300),
+        duration: const Duration(seconds: 2),
 
-        /// put the alarm list close to the bottom left
-        alignment: Tween(
-          begin: const Alignment(-0.95, 0.8),
+        // /// put the alarm list close to the bottom left
+        tween: Tween(
+          begin: Alignment.topRight,
           end: const Alignment(-0.95, 0.8),
         ),
-        (_) => _ShowingAlarmedEventList(streamController.stream),
+        // target: const Alignment(-0.95, 0.8),
+        builder: (_, animation) => AlignTransition(
+          alignment: animation,
+          child: _ShowingAlarmedEventList(streamController.stream, floating),
+        ),
       );
     });
   }
@@ -45,7 +55,7 @@ class _GlobalEventAlarmListenerState
   @override
   void dispose() {
     streamController.close();
-    floatingController.dispose();
+    floating.dispose();
     super.dispose();
   }
 
@@ -100,8 +110,9 @@ class _GlobalEventAlarmListenerState
 }
 
 class _ShowingAlarmedEventList extends ConsumerStatefulWidget {
+  final AlignmentAnimator floating;
   final Stream<String> lastEvent;
-  const _ShowingAlarmedEventList(this.lastEvent);
+  const _ShowingAlarmedEventList(this.lastEvent, this.floating);
 
   @override
   ConsumerState<ConsumerStatefulWidget> createState() =>
@@ -136,6 +147,10 @@ class __ShowingAlarmedEventListState
     super.dispose();
   }
 
+  Alignment _current = Alignment.bottomLeft;
+
+  bool _end = true;
+
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
@@ -147,28 +162,58 @@ class __ShowingAlarmedEventListState
         decoration: BoxDecoration(
           color: Colors.red,
         ),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: height, maxWidth: 400),
-          child: AnimatedList(
-            key: listKey,
-            shrinkWrap: true,
-            initialItemCount: showing.length,
-            itemBuilder: (_, index, animation) {
-              final event = showing[index];
-
-              final topPadding = index == 0 ? 6.0 : 0.0;
-
-              return SizeTransition(
-                sizeFactor: animation,
-                child: Padding(
-                  padding: EdgeInsets.only(top: topPadding, bottom: 6.0),
-                  child: TimelineEventAlarmTile(
-                    event: event,
-                    onDismissed: () => _dismiss(event),
-                  ),
-                ),
-              );
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: GestureDetector(
+            // onPanUpdate: (details) {
+            //   print("pan update: ${details.globalPosition}");
+            //   widget.floating.moveTo(details.globalPosition);
+            // },
+            // onPanEnd: (details) {
+            //   print("pan end");
+            //   widget.floating.autoAlign(Axis.horizontal);
+            // },
+            onTap: () {
+              if (_current == Alignment.bottomLeft) {
+                widget.floating.animate(target: Alignment.topRight);
+                _current = Alignment.topRight;
+              } else {
+                widget.floating.animate(target: Alignment.bottomLeft);
+                _current = Alignment.bottomLeft;
+              }
+              // if (_end) {
+              //   widget.floating.reverse();
+              // } else {
+              //   widget.floating.forward();
+              // }
+              // widget.floating.forward(from: 0);
+              _end = !_end;
+              print("_end: $_end");
             },
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: height, maxWidth: 400),
+              child: AnimatedList(
+                key: listKey,
+                shrinkWrap: true,
+                initialItemCount: showing.length,
+                itemBuilder: (_, index, animation) {
+                  final event = showing[index];
+
+                  final topPadding = index == 0 ? 6.0 : 0.0;
+
+                  return SizeTransition(
+                    sizeFactor: animation,
+                    child: Padding(
+                      padding: EdgeInsets.only(top: topPadding, bottom: 6.0),
+                      child: TimelineEventAlarmTile(
+                        event: event,
+                        onDismissed: () => _dismiss(event),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
           ),
         ),
       ),
@@ -182,10 +227,10 @@ class __ShowingAlarmedEventListState
     listKey.currentState?.insertItem(0);
 
     // auto dismiss after 5 seconds
-    _dismissTimers[event] = Timer(
-      const Duration(seconds: 5),
-      () => _dismiss(event),
-    );
+    // _dismissTimers[event] = Timer(
+    //   const Duration(seconds: 5),
+    //   () => _dismiss(event),
+    // );
   }
 
   void _dismiss(String event) {
