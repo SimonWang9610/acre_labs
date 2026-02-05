@@ -67,7 +67,7 @@ class FloatingAlignment implements DisposableOverlay {
         start: _alignment,
         end: newAlign,
       ),
-      duration: const Duration(milliseconds: 300),
+      animating: false,
     );
 
     // ensure the alignment is synced
