@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:acre_labs/vxg_webrtc/events/enums.dart';
 import 'package:acre_labs/vxg_webrtc/events/events.dart';
 import 'package:acre_labs/vxg_webrtc/vxg_web_rtc.dart';
 import 'package:flutter/material.dart';
@@ -51,17 +52,26 @@ class _VxgWebRtcExampleState extends State<VxgWebRtcExample> {
     _eventSub = rtc.events.listen((event) {
       debugPrint("$event");
 
+      // if (event is RtcConnectionStateEvent &&
+      //     event.state == RtcConnectionState.connected) {
+      //   render.value = rtc.renderers.lastOrNull;
+      // }
+
+      // if (event is RtcSignalingEvent && event.status == SignalingStatus.done) {
+      //   render.value = null;
+      // }
+
       if (event is RtcConnectionStateEvent) {
-        render.value = rtc.renderers.lastOrNull;
+        if (event.state == RtcConnectionState.connected) {
+          render.value = rtc.renderers.lastOrNull;
+        } else {
+          render.value = null;
+        }
       }
 
-      if (event is RtcSignalingEvent && event.status == SignalingStatus.done) {
-        render.value = null;
-      }
-
-      if (event is RtcMediaEvent) {
-        setState(() {});
-      }
+      // if (event is RtcMediaEvent) {
+      //   setState(() {});
+      // }
     });
   }
 

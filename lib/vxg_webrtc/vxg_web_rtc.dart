@@ -83,8 +83,7 @@ class VxgWebRTC {
   bool _handleSessionMessages(String message) {
     if (message.startsWith("HELLO")) {
       _eventSink.add(
-        RtcSignalingEvent(
-          status: SignalingStatus.active,
+        RtcLogEvent(
           message: 'Received greeting from server: $message',
         ),
       );
@@ -202,10 +201,12 @@ class VxgWebRTC {
   void _reset() {
     _signalingSub?.cancel();
     _signalingSub = null;
-    _signaling?.dispose();
-    _signaling = null;
+
     _peers?.dispose();
     _peers = null;
+
+    _signaling?.dispose();
+    _signaling = null;
 
     _eventSink.add(
       RtcSignalingEvent(

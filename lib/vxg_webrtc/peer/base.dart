@@ -178,17 +178,11 @@ class _PeerPoolImpl extends PeerPool
   }
 
   @override
-  void dispose() {
-    for (final render in _renderers.values) {
-      render.dispose();
-    }
-
-    _renderers.clear();
-    for (final peer in _peers.values) {
-      peer.close();
-    }
+  void dispose() async {
+    await Future.wait(_peers.keys.toList().map(remove));
 
     _peers.clear();
+    _renderers.clear();
   }
 
   Future<RTCPeerConnection> _createPeerConnection(String peerId) async {

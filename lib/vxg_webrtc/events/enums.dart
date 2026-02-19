@@ -1,6 +1,8 @@
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 enum RtcConnectionState {
+  /// connection and render are initialized,
+  /// waiting for offer/answer exchange to start connection
   initialized,
   connecting,
   connected,

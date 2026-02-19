@@ -8,7 +8,6 @@ sealed class RtcEvent {
 enum SignalingStatus {
   connecting,
   connected,
-  active,
   disconnected,
   error,
   done,
