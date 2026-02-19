@@ -1,10 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:acre_labs/vxg_webrtc/events/events.dart';
+import 'package:acre_labs/vxg_webrtc/events/sink.dart';
 import 'package:acre_labs/vxg_webrtc/peer/base.dart';
 import 'package:acre_labs/vxg_webrtc/peer/helper.dart';
 import 'package:acre_labs/vxg_webrtc/signaling/base.dart';
-import 'package:acre_labs/vxg_webrtc/web_rtc_event_sink.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 class VxgWebRTC {
@@ -13,7 +14,7 @@ class VxgWebRTC {
   final bool sendVideo;
   final bool sendAudio;
   final String version;
-  final WebRTCEventSink _eventSink = WebRTCEventSink();
+  final RtcEventSink _eventSink = RtcEventSink();
   WebSocketSignaling? _signaling;
   PeerPool? _peers;
   StreamSubscription? _signalingSub;
@@ -29,7 +30,7 @@ class VxgWebRTC {
   bool get isInitialized =>
       _signaling != null && _signaling!.isConnected && _peers != null;
 
-  Stream<WebRtcEvent> get events => _eventSink.stream;
+  Stream<RtcEvent> get events => _eventSink.stream;
 
   Future<void> start() async {
     if (_signaling?.isConnected ?? false) {
@@ -48,8 +49,7 @@ class VxgWebRTC {
       _signalingSub = _signaling!.subscribe(
         (msg) {
           _eventSink.add(
-            WebRtcEvent(
-              WebRtcState.other,
+            RtcLogEvent(
               message: '$msg',
             ),
           );
@@ -62,8 +62,8 @@ class VxgWebRTC {
         },
         onError: (error) {
           _eventSink.add(
-            WebRtcEvent(
-              WebRtcState.signalingError,
+            RtcSignalingEvent(
+              status: SignalingStatus.error,
               message: 'WebSocket error: $error',
             ),
           );
@@ -83,8 +83,8 @@ class VxgWebRTC {
   bool _handleSessionMessages(String message) {
     if (message.startsWith("HELLO")) {
       _eventSink.add(
-        WebRtcEvent(
-          WebRtcState.signalingConnected,
+        RtcSignalingEvent(
+          status: SignalingStatus.active,
           message: 'Received greeting from server: $message',
         ),
       );
@@ -111,8 +111,8 @@ class VxgWebRTC {
 
     if (message.startsWith("ERROR")) {
       _eventSink.add(
-        WebRtcEvent(
-          WebRtcState.signalingError,
+        RtcSignalingEvent(
+          status: SignalingStatus.error,
           message: 'Received error from server: $message',
         ),
       );
@@ -128,8 +128,8 @@ class VxgWebRTC {
       msg = jsonDecode(message) as Map<String, dynamic>;
     } catch (e) {
       _eventSink.add(
-        WebRtcEvent(
-          WebRtcState.signalingError,
+        RtcSignalingEvent(
+          status: SignalingStatus.error,
           message: 'Failed to parse signaling message: $message, error: $e',
         ),
       );
@@ -140,8 +140,8 @@ class VxgWebRTC {
 
     if (fromPeer == null) {
       _eventSink.add(
-        WebRtcEvent(
-          WebRtcState.signalingError,
+        RtcSignalingEvent(
+          status: SignalingStatus.error,
           message: 'Missing from field: $msg',
         ),
       );
@@ -151,8 +151,8 @@ class VxgWebRTC {
     final hasPeer = _peers?.containsPeer(fromPeer) ?? false;
     if (!hasPeer) {
       _eventSink.add(
-        WebRtcEvent(
-          WebRtcState.peerError,
+        RtcSignalingEvent(
+          status: SignalingStatus.error,
           message: 'Unknown peer: $fromPeer',
         ),
       );
@@ -172,8 +172,8 @@ class VxgWebRTC {
     }
 
     _eventSink.add(
-      WebRtcEvent(
-        WebRtcState.signalingError,
+      RtcSignalingEvent(
+        status: SignalingStatus.error,
         message: 'Not handled message: $msg',
       ),
     );
@@ -208,8 +208,8 @@ class VxgWebRTC {
     _peers = null;
 
     _eventSink.add(
-      WebRtcEvent(
-        WebRtcState.done,
+      RtcSignalingEvent(
+        status: SignalingStatus.done,
         message: 'WebSocket and peer connections have been reset',
       ),
     );

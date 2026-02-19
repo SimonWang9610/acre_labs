@@ -1,7 +1,9 @@
+import 'package:acre_labs/vxg_webrtc/events/enums.dart';
+import 'package:acre_labs/vxg_webrtc/events/events.dart';
+import 'package:acre_labs/vxg_webrtc/events/sink.dart';
 import 'package:acre_labs/vxg_webrtc/peer/handlers.dart';
 import 'package:acre_labs/vxg_webrtc/peer/helper.dart';
 import 'package:acre_labs/vxg_webrtc/signaling/base.dart';
-import 'package:acre_labs/vxg_webrtc/web_rtc_event_sink.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 abstract class PeerPool {
@@ -10,7 +12,7 @@ abstract class PeerPool {
   final RTCSignalingSink signaling;
   final Map<String, dynamic> configurations;
   final SignalDataTransformer dataTransformer;
-  final WebRTCEventSink? eventSink;
+  final RtcEventSink? eventSink;
 
   const PeerPool._({
     required this.signaling,
@@ -39,7 +41,7 @@ abstract class PeerPool {
     required RTCSignalingSink signaling,
     required Map<String, dynamic> configurations,
     required SignalDataTransformer dataTransformer,
-    WebRTCEventSink? eventSink,
+    RtcEventSink? eventSink,
     bool sendVideo = false,
     bool sendAudio = false,
   }) => _PeerPoolImpl(
@@ -97,10 +99,10 @@ class _PeerPoolImpl extends PeerPool
     final removed = _offeredPeers.remove(peerId);
 
     eventSink?.add(
-      WebRtcEvent(
-        WebRtcState.other,
+      RtcConnectionStateEvent(
         peerId: peerId,
-        message: 'Peer $peerId removed, wasOffered: $removed',
+        state: RtcConnectionState.closed,
+        message: 'Peer $peerId removed from pool, offered: $removed',
       ),
     );
 
@@ -113,9 +115,7 @@ class _PeerPoolImpl extends PeerPool
   @override
   Future<void> add(String peerId, {required bool needOffer}) async {
     eventSink?.add(
-      WebRtcEvent(
-        WebRtcState.other,
-        peerId: peerId,
+      RtcLogEvent(
         message: 'Adding peer $peerId, needOffer: $needOffer',
       ),
     );
@@ -133,10 +133,9 @@ class _PeerPoolImpl extends PeerPool
       }
     } catch (e) {
       eventSink?.add(
-        WebRtcEvent(
-          WebRtcState.peerError,
+        RtcErrorEvent(
           peerId: peerId,
-          message: 'Failed to create peer connection for $peerId: $e',
+          message: 'Failed to add peer $peerId: $e',
         ),
       );
     }
@@ -153,6 +152,8 @@ class _PeerPoolImpl extends PeerPool
 
     if (pc == null) return;
 
+    eventSink?.add(RtcSdpEvent(peerId: peerId, sdp: sdp, incoming: true));
+
     final needAnswer = !_offeredPeers.contains(peerId);
 
     try {
@@ -168,8 +169,7 @@ class _PeerPoolImpl extends PeerPool
       }
     } catch (e) {
       eventSink?.add(
-        WebRtcEvent(
-          WebRtcState.peerError,
+        RtcErrorEvent(
           peerId: peerId,
           message: 'Failed to handle incoming SDP from $peerId: $e',
         ),
@@ -223,11 +223,9 @@ class _PeerPoolImpl extends PeerPool
     pc.onRenegotiationNeeded = () => onRenegotiationNeeded(peerId);
 
     eventSink?.add(
-      WebRtcEvent(
-        WebRtcState.peerConnectionCreated,
+      RtcConnectionStateEvent(
         peerId: peerId,
-        message:
-            'Peer $peerId connection is created, waiting for ices and remote medias',
+        state: RtcConnectionState.initialized,
       ),
     );
 
@@ -240,11 +238,10 @@ class _PeerPoolImpl extends PeerPool
     }
 
     eventSink?.add(
-      WebRtcEvent(
-        WebRtcState.ice,
+      RtcIceEvent(
         peerId: peerId,
-        message:
-            'Local ICE candidate gathered for peer $peerId: ${candidate.toMap()}',
+        incoming: false,
+        candidate: candidate.toMap(),
       ),
     );
 
@@ -274,16 +271,16 @@ mixin _PeerOfferHandlerMixin on PeerPool, PeerLocalMediaMixin {
       signaling.send(dataTransformer.serializeSdp(peerId, offer.toMap()));
 
       eventSink?.add(
-        WebRtcEvent(
-          WebRtcState.sdp,
+        RtcSdpEvent(
           peerId: peerId,
-          message: 'Offer sent to peer $peerId, waiting for answer',
+          incoming: false,
+          sdp: offer.toMap(),
+          message: "Offer sent to peer $peerId",
         ),
       );
     } catch (e) {
       eventSink?.add(
-        WebRtcEvent(
-          WebRtcState.peerError,
+        RtcErrorEvent(
           peerId: peerId,
           message: 'Failed to offer to peer $peerId: $e',
         ),
@@ -312,16 +309,16 @@ mixin _PeerAnswerHandlerMixin on PeerPool, PeerLocalMediaMixin {
       signaling.send(dataTransformer.serializeSdp(peerId, answer.toMap()));
 
       eventSink?.add(
-        WebRtcEvent(
-          WebRtcState.sdp,
+        RtcSdpEvent(
           peerId: peerId,
-          message: 'Answer sent to peer $peerId, waiting for connection',
+          incoming: false,
+          sdp: answer.toMap(),
+          message: "Answer sent to peer $peerId",
         ),
       );
     } catch (e) {
       eventSink?.add(
-        WebRtcEvent(
-          WebRtcState.peerError,
+        RtcErrorEvent(
           peerId: peerId,
           message: 'Failed to answer peer $peerId: $e',
         ),

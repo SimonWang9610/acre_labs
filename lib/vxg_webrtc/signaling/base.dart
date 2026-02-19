@@ -1,7 +1,7 @@
 import 'dart:async';
 
+import 'package:acre_labs/vxg_webrtc/events/sink.dart';
 import 'package:acre_labs/vxg_webrtc/signaling/websocket.dart';
-import 'package:acre_labs/vxg_webrtc/web_rtc_event_sink.dart';
 
 abstract interface class RTCSignalingSink {
   FutureOr<void> send(dynamic message);
@@ -13,7 +13,7 @@ class WebSocketSignaling implements RTCSignalingSink {
   WebSocketSignaling(
     String wsUrl, {
     bool autoConnect = true,
-    WebRTCEventSink? eventSink,
+    RtcEventSink? eventSink,
   }) : _socket = WebSocketWrapper(
          wsUrl,
          autoConnect: autoConnect,

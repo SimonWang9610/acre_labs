@@ -1,7 +1,8 @@
 import 'dart:async';
 
+import 'package:acre_labs/vxg_webrtc/events/enums.dart';
+import 'package:acre_labs/vxg_webrtc/events/events.dart';
 import 'package:acre_labs/vxg_webrtc/peer/base.dart';
-import 'package:acre_labs/vxg_webrtc/web_rtc_event_sink.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 mixin PeerLocalMediaMixin on PeerPool {
@@ -40,17 +41,17 @@ mixin PeerLocalMediaMixin on PeerPool {
       _localStream = stream;
 
       eventSink?.add(
-        WebRtcEvent(
-          WebRtcState.other,
-          message: 'Local media stream obtained with id ${stream.id}',
+        RtcLogEvent(
+          message:
+              'Obtained local media stream with id ${stream.id}, tracks: ${stream.getTracks().map((t) => t.id).join(', ')}',
         ),
       );
 
       _localStreamCompleter?.complete(stream);
     } catch (e) {
       eventSink?.add(
-        WebRtcEvent(
-          WebRtcState.peerError,
+        RtcErrorEvent(
+          peerId: "<self>",
           message: 'Failed to get local media stream: $e',
         ),
       );
@@ -67,11 +68,11 @@ mixin PeerMediaHandlerMixin on PeerPool {
     }
 
     eventSink?.add(
-      WebRtcEvent(
-        WebRtcState.mediaReceived,
+      RtcMediaEvent(
         peerId: peerId,
-        message:
-            'Received remote track from $peerId, stream id: ${event.streams.first.id}',
+        streamId: event.streams.first.id,
+        trackId: event.track.id,
+        message: "[onTrack]",
       ),
     );
 
@@ -79,24 +80,23 @@ mixin PeerMediaHandlerMixin on PeerPool {
   }
 
   void onAddTrack(String peerId, MediaStreamTrack track, MediaStream stream) {
-    // eventSink?.add(
-    //   WebRtcEvent(
-    //     WebRtcState.mediaReceived,
-    //     peerId: peerId,
-    //     message:
-    //         'Added remote track from $peerId, track id: ${track.id}, stream id: ${stream.id}',
-    //   ),
-    // );
-    // getRenderer(peerId)?.srcObject = stream;
+    eventSink?.add(
+      RtcMediaEvent(
+        peerId: peerId,
+        streamId: stream.id,
+        trackId: track.id,
+        message: "[onAddTrack]",
+      ),
+    );
+    getRenderer(peerId)?.srcObject = stream;
   }
 
   // void onAddStream(String peerId, MediaStream stream) {
   //   eventSink?.add(
-  //     WebRtcEvent(
-  //       WebRtcState.mediaReceived,
+  //     RtcMediaEvent(
   //       peerId: peerId,
-  //       message:
-  //           'Added remote stream from $peerId, stream id: ${stream.id}, tracks: ${stream.getTracks().map((t) => t.id).join(', ')}',
+  //       streamId: stream.id,
+  //       message: "[onAddStream]",
   //     ),
   //   );
   //   getRenderer(peerId)?.srcObject = stream;
@@ -106,11 +106,10 @@ mixin PeerMediaHandlerMixin on PeerPool {
   //   final renderer = getRenderer(peerId);
   //   if (renderer?.srcObject == stream) {
   //     eventSink?.add(
-  //       WebRtcEvent(
-  //         WebRtcState.mediaRemoved,
+  //       RtcMediaEvent(
   //         peerId: peerId,
-  //         message:
-  //             'Removed remote stream from $peerId, stream id: ${stream.id}, tracks: ${stream.getTracks().map((t) => t.id).join(', ')}',
+  //         streamId: stream.id,
+  //         message: "[onRemoveStream]",
   //       ),
   //     );
   //     renderer?.srcObject = null;
@@ -123,11 +122,12 @@ mixin PeerMediaHandlerMixin on PeerPool {
 
     if (stream != null && stream.getTracks().contains(track)) {
       eventSink?.add(
-        WebRtcEvent(
-          WebRtcState.mediaRemoved,
+        RtcMediaEvent(
           peerId: peerId,
-          message:
-              'Removed remote track from $peerId, track id: ${track.id}, stream id: ${stream.id}',
+          streamId: stream.id,
+          trackId: track.id,
+          removed: true,
+          message: "[onRemoveTrack]",
         ),
       );
       stream.removeTrack(track);
@@ -151,11 +151,10 @@ mixin PeerConnectionHandlerMixin on PeerPool {
     );
 
     eventSink?.add(
-      WebRtcEvent(
-        WebRtcState.ice,
+      RtcIceEvent(
         peerId: peerId,
-        message:
-            'Received remote ICE candidate from $peerId: ${candidate.candidate}',
+        incoming: true,
+        candidate: candidate.toMap(),
       ),
     );
 
@@ -164,11 +163,7 @@ mixin PeerConnectionHandlerMixin on PeerPool {
 
   void onIceConnectionState(String peerId, RTCIceConnectionState state) {
     eventSink?.add(
-      WebRtcEvent(
-        WebRtcState.iceState,
-        peerId: peerId,
-        message: 'ICE connection state for $peerId changed to $state',
-      ),
+      RtcIceStateEvent(peerId: peerId, state: RtcIceState.fromIce(state)),
     );
 
     switch (state) {
@@ -183,43 +178,34 @@ mixin PeerConnectionHandlerMixin on PeerPool {
 
   void onSignalingState(String peerId, RTCSignalingState state) {
     eventSink?.add(
-      WebRtcEvent(
-        WebRtcState.peerConnectionSate,
-        peerId: peerId,
-        message: 'Signaling state for $peerId changed to $state',
+      RtcLogEvent(
+        message: 'Peer $peerId signaling state changed to $state',
       ),
     );
   }
 
   void onPeerConnectionState(String peerId, RTCPeerConnectionState state) {
-    final WebRtcState webRtcState;
-
     switch (state) {
       case RTCPeerConnectionState.RTCPeerConnectionStateDisconnected:
       case RTCPeerConnectionState.RTCPeerConnectionStateFailed:
-        webRtcState = WebRtcState.peerDisconnected;
         getPeer(peerId)?.restartIce();
         break;
       default:
-        webRtcState = WebRtcState.peerConnectionSate;
         break;
     }
 
     eventSink?.add(
-      WebRtcEvent(
-        webRtcState,
+      RtcConnectionStateEvent(
         peerId: peerId,
-        message: 'Peer connection state for $peerId changed to $state',
+        state: RtcConnectionState.fromRaw(state),
       ),
     );
   }
 
   void onRenegotiationNeeded(String peerId) {
     eventSink?.add(
-      WebRtcEvent(
-        WebRtcState.negotiating,
-        peerId: peerId,
-        message: 'Renegotiation needed for peer $peerId',
+      RtcLogEvent(
+        message: 'Peer $peerId renegotiation needed',
       ),
     );
   }

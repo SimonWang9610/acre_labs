@@ -1,8 +1,7 @@
 import 'dart:async';
 
-import 'package:acre_labs/vxg_webrtc/rtc_video_view.dart';
+import 'package:acre_labs/vxg_webrtc/events/events.dart';
 import 'package:acre_labs/vxg_webrtc/vxg_web_rtc.dart';
-import 'package:acre_labs/vxg_webrtc/web_rtc_event_sink.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
@@ -52,15 +51,17 @@ class _VxgWebRtcExampleState extends State<VxgWebRtcExample> {
     _eventSub = rtc.events.listen((event) {
       debugPrint("$event");
 
-      if (event.state == WebRtcState.peerConnectionCreated) {
+      if (event is RtcConnectionStateEvent) {
         render.value = rtc.renderers.lastOrNull;
-      } else if (event.state == WebRtcState.done) {
+      }
+
+      if (event is RtcSignalingEvent && event.status == SignalingStatus.done) {
         render.value = null;
       }
 
-      // if (event.state == WebRtcState.mediaReceived) {
-      //   setState(() {});
-      // }
+      if (event is RtcMediaEvent) {
+        setState(() {});
+      }
     });
   }
 
@@ -82,6 +83,7 @@ class _VxgWebRtcExampleState extends State<VxgWebRtcExample> {
         child: Column(
           spacing: 20,
           mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
               spacing: 20,

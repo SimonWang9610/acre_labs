@@ -1,13 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:acre_labs/vxg_webrtc/web_rtc_event_sink.dart';
+import 'package:acre_labs/vxg_webrtc/events/events.dart';
+import 'package:acre_labs/vxg_webrtc/events/sink.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/status.dart' as status;
 
 class WebSocketWrapper {
   final String wsUrl;
-  final WebRTCEventSink? eventSink;
+  final RtcEventSink? eventSink;
 
   WebSocketChannel? _channel;
 
@@ -39,9 +40,9 @@ class WebSocketWrapper {
     }
 
     eventSink?.add(
-      WebRtcEvent(
-        WebRtcState.signalingConnecting,
-        message: 'Attempting to connect to WebSocket at $wsUrl',
+      RtcSignalingEvent(
+        status: SignalingStatus.connecting,
+        message: 'Connecting to WebSocket at $wsUrl',
       ),
     );
 
@@ -56,19 +57,19 @@ class WebSocketWrapper {
         _isConnected = true;
         _connectionCompleter?.complete(true);
         eventSink?.add(
-          WebRtcEvent(
-            WebRtcState.signalingConnected,
-            message: 'Successfully connected to WebSocket at $wsUrl',
+          RtcSignalingEvent(
+            status: SignalingStatus.connected,
+            message: 'WebSocket connection established to $wsUrl',
           ),
         );
         break;
       } catch (e) {
         attempts++;
         eventSink?.add(
-          WebRtcEvent(
-            WebRtcState.signalingConnecting,
+          RtcSignalingEvent(
+            status: SignalingStatus.error,
             message:
-                'Connection attempt $attempts failed: $e, Retry after 2 seconds',
+                'Failed to connect to WebSocket at $wsUrl (attempt $attempts): $e',
           ),
         );
         await Future.delayed(Duration(seconds: 2)); // Wait before retrying
@@ -89,8 +90,8 @@ class WebSocketWrapper {
       await _channel?.sink.close(status.normalClosure);
     } catch (e) {
       eventSink?.add(
-        WebRtcEvent(
-          WebRtcState.other,
+        RtcSignalingEvent(
+          status: SignalingStatus.error,
           message: '[socket] Error while disconnecting WebSocket: $e',
         ),
       );
@@ -98,8 +99,8 @@ class WebSocketWrapper {
       _channel = null;
       _isConnected = false;
       eventSink?.add(
-        WebRtcEvent(
-          WebRtcState.signalingDisconnected,
+        RtcSignalingEvent(
+          status: SignalingStatus.disconnected,
           message: 'WebSocket connection closed',
         ),
       );
@@ -109,8 +110,8 @@ class WebSocketWrapper {
   void send(dynamic data) {
     if (!isConnected) {
       eventSink?.add(
-        WebRtcEvent(
-          WebRtcState.signalingError,
+        RtcSignalingEvent(
+          status: SignalingStatus.error,
           message: 'Cannot send message, WebSocket is not connected.',
         ),
       );
@@ -123,8 +124,8 @@ class WebSocketWrapper {
       _channel!.sink.add(encoded);
     } catch (e) {
       eventSink?.add(
-        WebRtcEvent(
-          WebRtcState.signalingError,
+        RtcSignalingEvent(
+          status: SignalingStatus.error,
           message: '[socket] Error while sending data over WebSocket: $e',
         ),
       );
