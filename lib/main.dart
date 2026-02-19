@@ -5,6 +5,7 @@ import 'package:acre_labs/floating_dialog/alarm/global_event_alarm_listener.dart
 import 'package:acre_labs/labs/bigint_example.dart';
 import 'package:acre_labs/misc/transform_view.dart';
 import 'package:acre_labs/snapshot/example.dart';
+import 'package:acre_labs/vxg_webrtc/example.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -23,7 +24,8 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       // home: _Example(),
-      home: ScalePanDemoPage(),
+      // home: ScalePanDemoPage(),
+      home: VxgWebRtcExample(),
     );
   }
 }
