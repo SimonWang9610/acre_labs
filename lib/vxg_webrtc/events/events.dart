@@ -103,19 +103,6 @@ final class RtcConnectionStateEvent extends RtcPeerEvent {
       'RtcConnectionStateEvent(peerId: $peerId, state: $state, message: $message)';
 }
 
-final class RtcIceStateEvent extends RtcPeerEvent {
-  final RtcIceState state;
-  const RtcIceStateEvent({
-    required super.peerId,
-    required this.state,
-    super.message,
-  });
-
-  @override
-  String toString() =>
-      'RtcIceStateEvent(peerId: $peerId, state: $state, message: $message)';
-}
-
 final class RtcErrorEvent extends RtcPeerEvent {
   const RtcErrorEvent({
     required super.peerId,

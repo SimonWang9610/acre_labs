@@ -8,15 +8,19 @@ import 'package:acre_labs/vxg_webrtc/peer/helper.dart';
 import 'package:acre_labs/vxg_webrtc/signaling/base.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 
-class VxgWebRTC {
+class VxgWebRTC with _VxgSignalDataTransformer {
   final String wsUrl;
   final List<Map<String, dynamic>> iceServers;
   final bool sendVideo;
   final bool sendAudio;
   final String version;
+
+  @override
   final RtcEventSink _eventSink = RtcEventSink();
-  WebSocketSignaling? _signaling;
+  @override
   PeerPool? _peers;
+
+  WebSocketSignaling? _signaling;
   StreamSubscription? _signalingSub;
 
   VxgWebRTC({
@@ -54,11 +58,7 @@ class VxgWebRTC {
             ),
           );
 
-          final handled = _handleSessionMessages(msg);
-
-          if (!handled) {
-            _handleSignalingMessage(msg);
-          }
+          handleSignalingMessage(msg);
         },
         onError: (error) {
           _eventSink.add(
@@ -79,6 +79,111 @@ class VxgWebRTC {
   }
 
   List<RTCVideoRenderer> get renderers => _peers?.renderers ?? [];
+
+  RTCVideoRenderer? getRenderer(String peerId) => _peers?.getRenderer(peerId);
+
+  void _initComponents() {
+    _signaling ??= WebSocketSignaling(
+      wsUrl,
+      autoConnect: false,
+      eventSink: _eventSink,
+    );
+
+    _peers ??= PeerPool(
+      signaling: _signaling!,
+      configurations: {
+        'iceServers': iceServers,
+        'sdpSemantics': 'unified-plan',
+      },
+      sendVideo: sendVideo,
+      sendAudio: sendAudio,
+      eventSink: _eventSink,
+      dataTransformer: this,
+    );
+  }
+
+  void _reset() {
+    _signalingSub?.cancel();
+    _signalingSub = null;
+
+    _peers?.dispose();
+    _peers = null;
+
+    _signaling?.dispose();
+    _signaling = null;
+
+    _eventSink.add(
+      RtcSignalingEvent(
+        status: SignalingStatus.done,
+        message: 'WebSocket and peer connections have been reset',
+      ),
+    );
+  }
+
+  void dispose() {
+    _reset();
+    _eventSink.dispose();
+  }
+}
+
+abstract mixin class _VxgSignalDataTransformer
+    implements SignalDataTransformer {
+  RtcEventSink get _eventSink;
+  PeerPool? get _peers;
+
+  /// Patches H.264 profile-level-id to 42e01f (Baseline 3.1) — mirrors the JS
+  /// sdp.sdp.replace(/profile-level-id=[^;]+/, 'profile-level-id=42e01f')
+  static String _patchSdp(String sdp) => sdp.replaceAll(
+    RegExp(r'profile-level-id=[^;]+'),
+    'profile-level-id=42e01f',
+  );
+
+  const _VxgSignalDataTransformer();
+
+  @override
+  String serializeSdp(String peerId, Map<String, dynamic> sdp) {
+    return jsonEncode({
+      "to": peerId,
+      "sdp": sdp,
+    });
+  }
+
+  @override
+  String serializeIce(String peerId, Map<String, dynamic> ice) {
+    return jsonEncode({
+      "to": peerId,
+      "ice": ice,
+    });
+  }
+
+  @override
+  RTCSessionDescription transformSdp(
+    Map<String, dynamic> sdp, {
+    bool needAnswer = false,
+  }) {
+    final type = sdp['type'] as String;
+    final rawSdp = sdp['sdp'] as String;
+    final patchedSdp = _patchSdp(rawSdp);
+
+    assert(() {
+      if (needAnswer) {
+        return type == 'offer';
+      } else {
+        return type == 'answer';
+      }
+    }(), 'Received unexpected SDP type "$type" from peer');
+
+    return RTCSessionDescription(patchedSdp, type);
+  }
+
+  @override
+  void handleSignalingMessage(dynamic message) {
+    final handled = _handleSessionMessages(message);
+
+    if (!handled) {
+      _handleSignalingMessage(message);
+    }
+  }
 
   bool _handleSessionMessages(String message) {
     if (message.startsWith("HELLO")) {
@@ -176,48 +281,5 @@ class VxgWebRTC {
         message: 'Not handled message: $msg',
       ),
     );
-  }
-
-  void _initComponents() {
-    _signaling ??= WebSocketSignaling(
-      wsUrl,
-      autoConnect: false,
-      eventSink: _eventSink,
-    );
-
-    _peers ??= PeerPool(
-      signaling: _signaling!,
-      configurations: {
-        'iceServers': iceServers,
-        'sdpSemantics': 'unified-plan',
-      },
-      sendVideo: sendVideo,
-      sendAudio: sendAudio,
-      eventSink: _eventSink,
-      dataTransformer: const VxgSignalDataTransformer(),
-    );
-  }
-
-  void _reset() {
-    _signalingSub?.cancel();
-    _signalingSub = null;
-
-    _peers?.dispose();
-    _peers = null;
-
-    _signaling?.dispose();
-    _signaling = null;
-
-    _eventSink.add(
-      RtcSignalingEvent(
-        status: SignalingStatus.done,
-        message: 'WebSocket and peer connections have been reset',
-      ),
-    );
-  }
-
-  void dispose() {
-    _reset();
-    _eventSink.dispose();
   }
 }

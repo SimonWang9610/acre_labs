@@ -5,6 +5,7 @@ import 'package:acre_labs/vxg_webrtc/events/events.dart';
 import 'package:acre_labs/vxg_webrtc/vxg_web_rtc.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:path_provider/path_provider.dart';
 
 class VxgWebRtcExample extends StatefulWidget {
   const VxgWebRtcExample({super.key});
@@ -27,7 +28,7 @@ class _VxgWebRtcExampleState extends State<VxgWebRtcExample> {
     ],
     "version": "2.0.2",
     "connection_url":
-        "wss://webrtc-1.inst.acre.acre.cloud-vms.com:443/25/watch/b93182b36c1da811bed43d449bfdc23b31340042/?ticket=media.eyJuIjogIjI1L3dhdGNoL2I5MzE4MmIzNmMxZGE4MTFiZWQ0M2Q0NDliZmRjMjNiMzEzNDAwNDIifQ.1771543307.79PmxdTY2wk2M31q68W3lFM3UnU&stream_id=0",
+        "wss://webrtc-1.inst.acre.acre.cloud-vms.com:443/25/watch/72937a7445c2d97d3d2b1fd17f5ce7282193ee6b/?ticket=media.eyJuIjogIjI1L3dhdGNoLzcyOTM3YTc0NDVjMmQ5N2QzZDJiMWZkMTdmNWNlNzI4MjE5M2VlNmIifQ.1771616642.ppwSHkgFDaleObHn2IHmRb5U5RA&stream_id=0",
     "scripts": {
       "player":
           "https://web.acre.acre.cloud-vms.com:443/static/webrtc/CloudPlayer.webrtc2.js",
@@ -62,10 +63,18 @@ class _VxgWebRtcExampleState extends State<VxgWebRtcExample> {
       // }
 
       if (event is RtcConnectionStateEvent) {
-        if (event.state == RtcConnectionState.connected) {
-          render.value = rtc.renderers.lastOrNull;
-        } else {
+        if (event.state == RtcConnectionState.disconnected ||
+            event.state == RtcConnectionState.failed ||
+            event.state == RtcConnectionState.closed) {
           render.value = null;
+        }
+      }
+
+      if (event is RtcMediaEvent) {
+        if (event.removed) {
+          render.value = null;
+        } else {
+          render.value = rtc.getRenderer(event.peerId);
         }
       }
 
@@ -107,6 +116,13 @@ class _VxgWebRtcExampleState extends State<VxgWebRtcExample> {
                   onPressed: () => rtc.stop(),
                   child: const Text('Stop WebRTC'),
                 ),
+                ElevatedButton(
+                  onPressed: () async {
+                    final dir = await getTemporaryDirectory();
+                    print("Temporary directory: ${dir.path}");
+                  },
+                  child: const Text('Capture Frame'),
+                ),
               ],
             ),
             Expanded(
@@ -116,19 +132,46 @@ class _VxgWebRtcExampleState extends State<VxgWebRtcExample> {
                 child: ValueListenableBuilder(
                   valueListenable: render,
                   builder: (context, value, child) {
-                    return AspectRatio(
-                      aspectRatio: 16 / 9,
-                      child: value != null
-                          ? RTCVideoView(value)
-                          : Center(
-                              child: Text(
-                                'Waiting for video stream...',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  color: Colors.grey,
+                    return Stack(
+                      children: [
+                        AspectRatio(
+                          aspectRatio: 16 / 9,
+                          child: value != null
+                              ? RTCVideoView(value)
+                              : Center(
+                                  child: Text(
+                                    'Waiting for video stream...',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
                                 ),
-                              ),
+                        ),
+                        Align(
+                          alignment: Alignment.bottomCenter,
+                          child: Container(
+                            margin: const EdgeInsets.all(8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
                             ),
+                            decoration: BoxDecoration(
+                              color: Colors.black54,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (value != null)
+                                  _VolumeControl(
+                                    render: value,
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     );
                   },
                 ),
@@ -137,6 +180,41 @@ class _VxgWebRtcExampleState extends State<VxgWebRtcExample> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _VolumeControl extends StatelessWidget {
+  final RTCVideoRenderer render;
+  const _VolumeControl({
+    super.key,
+    required this.render,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder(
+      valueListenable: render,
+      builder: (_, _, _) {
+        return IconButton(
+          onPressed: () async {
+            final audioTracks = render.srcObject?.getAudioTracks();
+            if (audioTracks == null || audioTracks.isEmpty) {
+              return;
+            }
+
+            final enableStatus = audioTracks
+                .map((track) => track.enabled)
+                .toList();
+
+            print("Current audio track enabled status: $enableStatus");
+          },
+          icon: Icon(
+            Icons.volume_up,
+            color: Colors.white,
+          ),
+        );
+      },
     );
   }
 }

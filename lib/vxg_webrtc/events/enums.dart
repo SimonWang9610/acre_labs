@@ -25,28 +25,22 @@ enum RtcConnectionState {
         RtcConnectionState.closed,
     };
   }
-}
 
-enum RtcIceState {
-  idle,
-  checking,
-  connected,
-  failed,
-  disconnected,
-  closed;
-
-  static RtcIceState fromIce(RTCIceConnectionState state) {
+  static RtcConnectionState fromIce(RTCIceConnectionState state) {
     return switch (state) {
       RTCIceConnectionState.RTCIceConnectionStateNew ||
-      RTCIceConnectionState.RTCIceConnectionStateChecking =>
-        RtcIceState.checking,
+      RTCIceConnectionState.RTCIceConnectionStateChecking ||
+      RTCIceConnectionState.RTCIceConnectionStateCount =>
+        RtcConnectionState.connecting,
       RTCIceConnectionState.RTCIceConnectionStateConnected ||
-      RTCIceConnectionState.RTCIceConnectionStateCompleted ||
-      RTCIceConnectionState.RTCIceConnectionStateCount => RtcIceState.connected,
+      RTCIceConnectionState.RTCIceConnectionStateCompleted =>
+        RtcConnectionState.connected,
       RTCIceConnectionState.RTCIceConnectionStateDisconnected =>
-        RtcIceState.disconnected,
-      RTCIceConnectionState.RTCIceConnectionStateFailed => RtcIceState.failed,
-      RTCIceConnectionState.RTCIceConnectionStateClosed => RtcIceState.closed,
+        RtcConnectionState.disconnected,
+      RTCIceConnectionState.RTCIceConnectionStateFailed =>
+        RtcConnectionState.failed,
+      RTCIceConnectionState.RTCIceConnectionStateClosed =>
+        RtcConnectionState.closed,
     };
   }
 }

@@ -146,6 +146,9 @@ mixin PeerConnectionHandlerMixin on PeerPool {
 
     final candidate = RTCIceCandidate(
       ice['candidate'] as String?,
+
+      /// Some signaling servers (e.g. vxg) may omit sdpMid and sdpMLineIndex for trickle ICE candidates,
+      /// so we provide default values here to avoid errors in flutter_webrtc.
       ice['sdpMid'] as String? ?? "",
       ice['sdpMLineIndex'] as int?,
     );
@@ -162,16 +165,21 @@ mixin PeerConnectionHandlerMixin on PeerPool {
   }
 
   void onIceConnectionState(String peerId, RTCIceConnectionState state) {
-    eventSink?.add(
-      RtcIceStateEvent(peerId: peerId, state: RtcIceState.fromIce(state)),
-    );
-
     switch (state) {
-      case RTCIceConnectionState.RTCIceConnectionStateDisconnected:
+      /// we cannot recover from failed state,
+      /// so we remove the peer connection,
+      /// it will turn the fail state into closed state,
+      /// and we can handle cleanup in one place.
       case RTCIceConnectionState.RTCIceConnectionStateFailed:
-        getPeer(peerId)?.restartIce();
+        remove(peerId);
         break;
       default:
+        eventSink?.add(
+          RtcConnectionStateEvent(
+            peerId: peerId,
+            state: RtcConnectionState.fromIce(state),
+          ),
+        );
         return;
     }
   }
@@ -186,20 +194,22 @@ mixin PeerConnectionHandlerMixin on PeerPool {
 
   void onPeerConnectionState(String peerId, RTCPeerConnectionState state) {
     switch (state) {
-      case RTCPeerConnectionState.RTCPeerConnectionStateDisconnected:
+      /// we cannot recover from failed state,
+      /// so we remove the peer connection,
+      /// it will turn the fail state into closed state,
+      /// and we can handle cleanup in one place.
       case RTCPeerConnectionState.RTCPeerConnectionStateFailed:
-        getPeer(peerId)?.restartIce();
+        remove(peerId);
         break;
       default:
+        eventSink?.add(
+          RtcConnectionStateEvent(
+            peerId: peerId,
+            state: RtcConnectionState.fromRaw(state),
+          ),
+        );
         break;
     }
-
-    eventSink?.add(
-      RtcConnectionStateEvent(
-        peerId: peerId,
-        state: RtcConnectionState.fromRaw(state),
-      ),
-    );
   }
 
   void onRenegotiationNeeded(String peerId) {
